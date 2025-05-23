@@ -13,8 +13,8 @@ fn main() -> std::io::Result<()> {
             let n = reader.read(&mut buffer)?;
             if n == 0 {
                 break;
-            }
-            let text = String::from_utf8_lossy(&buffer[..n]);
+            }            
+            let text = String::from_utf8_lossy(&buffer[..n]);            
             println!("Received: {}", text);
         }
     }
