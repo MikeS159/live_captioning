@@ -1,0 +1,7 @@
+[package]
+name = "load_script_file"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+script_container = { path = "../script_container" }
