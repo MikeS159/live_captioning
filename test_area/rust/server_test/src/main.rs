@@ -10,6 +10,7 @@ use std::{net::SocketAddr, time::Duration};
 use tokio::sync::broadcast;
 use tokio::time::sleep;
 
+/// A message containing text, styling, and optional media to display
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct LineMessage {
     text: String,
@@ -18,6 +19,7 @@ struct LineMessage {
     media: Option<Media>,
 }
 
+/// Styling information for displaying a line
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Style {
     color: String,
@@ -26,12 +28,14 @@ struct Style {
     position: Position,
 }
 
+/// Position coordinates for displaying a line
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Position {
     x: String,
     y: String,
 }
 
+/// Media (image or video) to display alongside a line
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Media {
     kind: String, // "image" or "video"
@@ -39,10 +43,12 @@ struct Media {
     duration_ms: Option<u64>,
 }
 
+/// Serve the HTML client
 async fn html_handler() -> Html<&'static str> {
     Html(include_str!("client.html"))
 }
 
+/// Handle WebSocket upgrade and broadcast messages to clients
 async fn ws_handler(
     ws: WebSocketUpgrade,
     Extension(tx): Extension<broadcast::Sender<LineMessage>>,
@@ -79,86 +85,36 @@ async fn ws_handler(
     })
 }
 
+/// Load lines from a JSON file
 fn load_lines_from_file(path: &str) -> Vec<LineMessage> {
-    let data = std::fs::read_to_string(path).expect("Failed to read lines file");
-    serde_json::from_str::<Vec<LineMessage>>(&data).expect("Failed to parse lines.json")
+    let data = std::fs::read_to_string(path)
+        .unwrap_or_else(|e| panic!("Failed to read lines file at '{}': {}", path, e));
+    serde_json::from_str::<Vec<LineMessage>>(&data)
+        .unwrap_or_else(|e| panic!("Failed to parse lines.json: {}", e))
 }
 
 #[tokio::main]
 async fn main() {
     // broadcast channel for pushing LineMessage to all connected clients.
-    let (tx, _rx) = broadcast::channel::<LineMessage>(16);
+    let (tx, _) = broadcast::channel::<LineMessage>(16);
     let lines = load_lines_from_file("src/lines.json");
 
-    // Spawn a simple producer that sends sample lines every 4 seconds.
-    {
-        let tx = tx.clone();
-        tokio::spawn(async move {
-            loop {
-                for lm in &lines {
-                    let _ = tx.send(lm.clone());
-                    sleep(Duration::from_millis(
-                        lm.media
-                            .as_ref()
-                            .and_then(|m| m.duration_ms)
-                            .unwrap_or(5000),
-                    ))
-                    .await;
-                }
+    // Spawn a simple producer that sends sample lines based on their duration.
+    let tx_clone = tx.clone();
+    tokio::spawn(async move {
+        loop {
+            for lm in &lines {
+                let _ = tx_clone.send(lm.clone());
+                sleep(Duration::from_millis(
+                    lm.media
+                        .as_ref()
+                        .and_then(|m| m.duration_ms)
+                        .unwrap_or(5000),
+                ))
+                .await;
             }
-        });
-        // tokio::spawn(async move {
-        //     let lines = vec![
-        //         LineMessage {
-        //             text: "Welcome to the creative captioning demo".into(),
-        //             style: Style {
-        //                 color: "#FFCC00".into(),
-        //                 font_size: "28px".into(),
-        //                 font_family: "Arial".into(),
-        //                 position: Position { x: "50%".into(), y: "10%".into() },
-        //             },
-        //             media: None,
-        //         },
-        //         LineMessage {
-        //             text: "Now showing an image behind the text".into(),
-        //             style: Style {
-        //                 color: "#FFFFFF".into(),
-        //                 font_size: "24px".into(),
-        //                 font_family: "Helvetica".into(),
-        //                 position: Position { x: "50%".into(), y: "80%".into() },
-        //             },
-        //             media: Some(Media {
-        //                 kind: "image".into(),
-        //                 url: "https://picsum.photos/1200/800".into(),
-        //                 duration_ms: Some(6000),
-        //             }),
-        //         },
-        //         LineMessage {
-        //             text: "And a short caption while a video plays".into(),
-        //             style: Style {
-        //                 color: "#00FF99".into(),
-        //                 font_size: "26px".into(),
-        //                 font_family: "Georgia".into(),
-        //                 position: Position { x: "10%".into(), y: "50%".into() },
-        //             },
-        //             media: Some(Media {
-        //                 kind: "video".into(),
-        //                 url: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4".into(),
-        //                 duration_ms: Some(8000),
-        //             }),
-        //         },
-        //     ];
-
-        //     loop {
-        //         for lm in &lines {
-        //             if tx.send(lm.clone()).is_err() {
-        //                 // no subscribers, continue; sender can ignore error
-        //             }
-        //             sleep(Duration::from_secs(4)).await;
-        //         }
-        //     }
-        // });
-    }
+        }
+    });
 
     let app = Router::new()
         .route("/", get(html_handler))
@@ -166,7 +122,11 @@ async fn main() {
         .layer(Extension(tx));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(addr)
+        .await
+        .unwrap_or_else(|e| panic!("Failed to bind to {}: {}", addr, e));
     println!("Listening on http://{}", addr);
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .await
+        .unwrap_or_else(|e| panic!("Server error: {}", e));
 }

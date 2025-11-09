@@ -20,6 +20,15 @@
   <script>
     const container = document.getElementById('container');
     const ws = new WebSocket(`ws://${location.host}/ws`);
+    
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+    
+    ws.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+    
     ws.onmessage = ev => {
       const msg = JSON.parse(ev.data);
       const div = document.createElement('div');
