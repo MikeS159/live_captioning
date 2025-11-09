@@ -13,6 +13,7 @@ use tokio::time::sleep;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct LineMessage {
     text: String,
+    speaker: Option<String>,
     style: Style,
     media: Option<Media>,
 }
