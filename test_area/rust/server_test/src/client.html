@@ -9,24 +9,36 @@
 
   /* Frame container */
   .frame {
-    position: absolute; /* allows placement anywhere */
+    position: absolute;
     display: flex;
     justify-content: center;
     align-items: center;
+    box-sizing: border-box;
   }
 
-  /* The image inside frame */
   .frame img {
     display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
 
-  /* Text inside the frame */
   .frame .text {
-    position: absolute; /* overlay */
     text-align: center;
-    color: white; 
+    pointer-events: none;
+    color: white;
     font-weight: bold;
-    pointer-events: none; /* so text doesn't block interactions */
+  }
+
+  /* NEW: padded overlay area for text */
+  .frame-text-area {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .line {
@@ -52,56 +64,51 @@ function connectWS() {
       const frame = document.createElement('div');
       frame.className = 'frame';
 
-      // position frame on screen
       frame.style.left = msg.style.position.x || '50%';
       frame.style.top  = msg.style.position.y || '0';
-      frame.style.transform = 'translate(-50%, 0)'; // center horizontally
+      frame.style.transform = 'translate(-50%, 0)';
 
       const img = document.createElement('img');
       img.src = msg.media.url;
 
-      // set image size
       if (msg.media.img_size) {
-        img.style.width = msg.media.img_size.width;
-        img.style.height = msg.media.img_size.height;
+        frame.style.width  = msg.media.img_size.width;
+        frame.style.height = msg.media.img_size.height;
       }
 
       frame.appendChild(img);
-
-      // create text overlay
-      frame.appendChild(img);
       container.appendChild(frame);
 
-      // Wait for the image to load before adding the text
+      // Wait for image before placing text
       img.onload = () => {
+        // Create padded text area overlay
+        const textArea = document.createElement('div');
+        textArea.className = 'frame-text-area';
+
+        if (msg.media.padding) {
+          textArea.style.padding =
+            `${msg.media.padding.top} `
+          + `${msg.media.padding.right} `
+          + `${msg.media.padding.bottom} `
+          + `${msg.media.padding.left}`;
+        }
+
+        // Add text inside the padded area
         const textDiv = document.createElement('div');
         textDiv.className = 'text';
         textDiv.textContent = msg.text;
+
         if (msg.style) {
           textDiv.style.color = msg.style.color;
           textDiv.style.fontSize = msg.style.font_size;
           textDiv.style.fontFamily = msg.style.font_family;
         }
-        frame.appendChild(textDiv);
+
+        textArea.appendChild(textDiv);
+        frame.appendChild(textArea);
       };
 
-      // remove after duration
       setTimeout(() => frame.remove(), msg.media.duration_ms || 5000);
-    } else {
-      // fallback: normal text without frame
-      const div = document.createElement('div');
-      div.className = 'line visible';
-      div.textContent = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
-      if (msg.style) {
-        div.style.color = msg.style.color;
-        div.style.fontSize = msg.style.font_size;
-        div.style.fontFamily = msg.style.font_family;
-        div.style.left = msg.style.position.x || "50%";
-        div.style.top = msg.style.position.y || "0";
-        div.style.transform = "translateX(-50%)";
-      }
-      container.appendChild(div);
-      setTimeout(() => div.classList.remove('visible'), msg.media?.duration_ms || 5000);
     }
   };
 
