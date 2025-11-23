@@ -160,6 +160,8 @@ function connectWS() {
       }
 
       container.appendChild(div);
+      // auto-remove after duration
+      setTimeout(() => div.classList.remove('visible'), msg.media?.duration_ms || 5000);
     };
 
     ws.onclose = () => setTimeout(connectWS, 100);
