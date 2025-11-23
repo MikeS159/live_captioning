@@ -69,17 +69,21 @@ function connectWS() {
       frame.appendChild(img);
 
       // create text overlay
-      const textDiv = document.createElement('div');
-      textDiv.className = 'text';
-      textDiv.textContent = msg.text;
-      if (msg.style) {
-        textDiv.style.color = msg.style.color;
-        textDiv.style.fontSize = msg.style.font_size;
-        textDiv.style.fontFamily = msg.style.font_family;
-      }
-      frame.appendChild(textDiv);
-
+      frame.appendChild(img);
       container.appendChild(frame);
+
+      // Wait for the image to load before adding the text
+      img.onload = () => {
+        const textDiv = document.createElement('div');
+        textDiv.className = 'text';
+        textDiv.textContent = msg.text;
+        if (msg.style) {
+          textDiv.style.color = msg.style.color;
+          textDiv.style.fontSize = msg.style.font_size;
+          textDiv.style.fontFamily = msg.style.font_family;
+        }
+        frame.appendChild(textDiv);
+      };
 
       // remove after duration
       setTimeout(() => frame.remove(), msg.media.duration_ms || 5000);
