@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, time::Duration};
 use tokio::sync::broadcast;
 use tokio::time::sleep;
+use axum::routing::get_service;
+use tower_http::services::ServeDir;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct LineMessage {
@@ -163,6 +165,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(html_handler))
         .route("/ws", get(ws_handler))
+        .nest_service("/src", get_service(ServeDir::new("src")))
         .layer(Extension(tx));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));

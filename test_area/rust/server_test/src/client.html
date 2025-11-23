@@ -12,16 +12,51 @@
       opacity: 0;
       text-align: center;
     }
+    /* #container img {
+      display: block;
+      margin: 0 auto;
+    } */
     .visible { opacity:1; }
   </style>
 </head>
 <body>
   <div id="container"></div>
-  <script>
-    const container = document.getElementById('container');
+<script>
+  function connectWS() {
     const ws = new WebSocket(`ws://${location.host}/ws`);
     ws.onmessage = ev => {
       const msg = JSON.parse(ev.data);
+
+    // If image, create and append first
+    if (msg.media && msg.media.kind === 'image') {
+      const img = document.createElement('img');
+      img.src = msg.media.url;
+
+      img.style.position = 'absolute';
+      img.style.left = '50%';
+      img.style.top = '0';
+      img.style.transform = 'translateX(-50%)';
+      img.style.zIndex = '1';
+
+      // **force fixed size immediately**
+      if (msg.media.img_size) {
+        img.style.width = msg.media.img_size.width;
+        img.style.height = msg.media.img_size.height;
+      }
+
+      img.onload = () => {
+        // **reapply to avoid race conditions**
+        if (msg.media.img_size) {
+          img.style.width = msg.media.img_size.width;
+          img.style.height = msg.media.img_size.height;
+        }
+      };
+
+      container.appendChild(img);
+
+      setTimeout(() => img.remove(), msg.media.duration_ms || 5000);
+    }
+
       const div = document.createElement('div');
       div.className = 'line visible';
       console.log(msg);
@@ -34,14 +69,14 @@
       div.style.top = msg.style.position.y;
       container.appendChild(div);
       if (msg.media) {
-        if (msg.media.kind === 'image') {
-          const img = document.createElement('img');
-          img.src = msg.media.url;
-          img.style.position = 'absolute';
-          img.style.left = '0'; img.style.top = '0';
-          img.style.width = '100%'; img.style.height = 'auto';
-          container.appendChild(img);
-        }
+        // if (msg.media.kind === 'image') {
+        //   const img = document.createElement('img');
+        //   img.src = msg.media.url;
+        //   img.style.position = 'absolute';
+        //   img.style.left = '0'; img.style.top = '0';
+        //   img.style.width = '100%'; img.style.height = 'auto';
+        //   container.appendChild(img);
+        // }
         if (msg.media.kind === 'video') {
           const vid = document.createElement('video');
           vid.src = msg.media.url;
@@ -58,6 +93,14 @@
         div.classList.remove('visible');
       }, msg.media?.duration_ms || 5000);
     };
-  </script>
+    ws.onclose = () => {
+      setTimeout(connectWS, 100);
+    };
+    ws.onerror = () => {
+      ws.close();
+    };
+  }
+  connectWS();
+</script>
 </body>
 </html>
