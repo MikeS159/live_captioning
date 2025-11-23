@@ -39,6 +39,22 @@ struct Media {
     kind: String, // "image" or "video"
     url: String,
     duration_ms: Option<u64>,
+    padding: Option<Padding>,
+    img_size: Option<ImageSize>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct Padding {
+    top: String,
+    right: String,
+    bottom: String,
+    left: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct ImageSize {
+    width: String,
+    height: String,
 }
 
 async fn html_handler() -> Html<&'static str> {

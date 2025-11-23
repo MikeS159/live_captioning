@@ -14,13 +14,15 @@
     justify-content: center;
     align-items: center;
     box-sizing: border-box;
+    overflow: hidden; /* keep image inside */
   }
 
   .frame img {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    /* use cover to ensure image fills the frame fully; switch to 'contain' if you prefer letterboxed image */
+    object-fit: cover;
   }
 
   .frame .text {
@@ -28,9 +30,11 @@
     pointer-events: none;
     color: white;
     font-weight: bold;
+    word-break: break-word;
+    max-width: 100%;
   }
 
-  /* NEW: padded overlay area for text */
+  /* padded overlay area for text */
   .frame-text-area {
     position: absolute;
     width: 100%;
@@ -39,6 +43,9 @@
     display: flex;
     justify-content: center;
     align-items: center;
+
+    /* DEBUG: visible overlay border so you can see padding area — remove or change color when happy */
+    outline: 2px dashed rgba(255,255,255,0.12);
   }
 
   .line {
@@ -54,66 +61,110 @@
   <div id="container"></div>
 
 <script>
+function normalizePadding(p) {
+  // Accept either:
+  // 1) string like "10px 20px"
+  // 2) object {top,right,bottom,left} with px values
+  // 3) object {top:10, left:10} (numbers)
+  if (!p) return null;
+  if (typeof p === 'string') return p;
+  const t = p.top ?? p.t ?? '0px';
+  const r = p.right ?? p.r ?? p.right ?? '0px';
+  const b = p.bottom ?? p.b ?? '0px';
+  const l = p.left ?? p.l ?? '0px';
+  // ensure units if number provided
+  function ensureUnit(v){
+    if (v === undefined || v === null) return '0px';
+    if (typeof v === 'number') return v + 'px';
+    if (typeof v === 'string' && v.trim().match(/^[\d.]+$/)) return v + 'px';
+    return v;
+  }
+  return `${ensureUnit(t)} ${ensureUnit(r)} ${ensureUnit(b)} ${ensureUnit(l)}`;
+}
+
 function connectWS() {
+  const container = document.getElementById('container');
   const ws = new WebSocket(`ws://${location.host}/ws`);
   ws.onmessage = ev => {
     const msg = JSON.parse(ev.data);
+    console.log('incoming msg', msg);
 
     // If image, wrap in frame container
     if (msg.media && msg.media.kind === 'image') {
       const frame = document.createElement('div');
       frame.className = 'frame';
 
-      frame.style.left = msg.style.position.x || '50%';
-      frame.style.top  = msg.style.position.y || '0';
+      // position frame on screen
+      frame.style.left = (msg.style?.position?.x) || '50%';
+      frame.style.top  = (msg.style?.position?.y) || '0';
       frame.style.transform = 'translate(-50%, 0)';
 
-      const img = document.createElement('img');
-      img.src = msg.media.url;
-
+      // set outer frame size (img_size applies to the outer frame)
       if (msg.media.img_size) {
         frame.style.width  = msg.media.img_size.width;
         frame.style.height = msg.media.img_size.height;
       }
 
+      // create image and add to frame
+      const img = document.createElement('img');
+      img.src = msg.media.url;
       frame.appendChild(img);
       container.appendChild(frame);
 
-      // Wait for image before placing text
+      // Wait for image to load before placing text-area (so sizes are stable)
       img.onload = () => {
-        // Create padded text area overlay
+        // Build padded text-area overlay (padding is applied to this overlay only)
         const textArea = document.createElement('div');
         textArea.className = 'frame-text-area';
 
-        if (msg.media.padding) {
-          textArea.style.padding =
-            `${msg.media.padding.top} `
-          + `${msg.media.padding.right} `
-          + `${msg.media.padding.bottom} `
-          + `${msg.media.padding.left}`;
-        }
+        // Normalize and apply padding from JSON (robust)
+        const pad = normalizePadding(msg.media?.padding);
+        console.log('resolved padding:', pad);
+        if (pad) textArea.style.padding = pad;
 
-        // Add text inside the padded area
+        // Now create the actual text element inside the padded area
         const textDiv = document.createElement('div');
         textDiv.className = 'text';
-        textDiv.textContent = msg.text;
+        textDiv.textContent = msg.text ?? '';
 
         if (msg.style) {
-          textDiv.style.color = msg.style.color;
-          textDiv.style.fontSize = msg.style.font_size;
-          textDiv.style.fontFamily = msg.style.font_family;
+          if (msg.style.color) textDiv.style.color = msg.style.color;
+          if (msg.style.font_size) textDiv.style.fontSize = msg.style.font_size;
+          if (msg.style.font_family) textDiv.style.fontFamily = msg.style.font_family;
+          // allow multi-line wrapping inside the padded region
+          textDiv.style.whiteSpace = 'normal';
         }
 
         textArea.appendChild(textDiv);
         frame.appendChild(textArea);
       };
 
-      setTimeout(() => frame.remove(), msg.media.duration_ms || 5000);
-    }
-  };
+      // auto-remove after duration
+      setTimeout(() => {
+        frame.remove();
+      }, msg.media.duration_ms || 5000);
+    } 
+    else {
+      // Text-only message
+      const div = document.createElement('div');
+      div.className = 'line visible';
+      div.textContent = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
 
-  ws.onclose = () => setTimeout(connectWS, 100);
-  ws.onerror = () => ws.close();
+      if (msg.style) {
+        div.style.color = msg.style.color;
+        div.style.fontSize = msg.style.font_size;
+        div.style.fontFamily = msg.style.font_family;
+        div.style.left = msg.style.position?.x || '50%';
+        div.style.top  = msg.style.position?.y || '0';
+        div.style.transform = 'translateX(-50%)';
+      }
+
+      container.appendChild(div);
+    };
+
+    ws.onclose = () => setTimeout(connectWS, 100);
+    ws.onerror = () => ws.close();
+  }
 }
 
 connectWS();
