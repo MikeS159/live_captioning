@@ -6,13 +6,21 @@
     "url": "src/frame.png",
     "duration_ms": 5000,
      "img_size": { "width": "400px", "height": "300px" } } },
-  { "text": "To reveal art and conceal the artist is art's aim.", "speaker": "C4", "style": { "color": "#32CD32", "font_size": "28px", "font_family": "Arial", "position": { "x": "50%", "y": "10%" } }, "media": {
+  { "text": "To reveal art \nand conceal the artist is art's aim.", "speaker": "C4", "style": { "color": "#32CD32", "font_size": "28px", "font_family": "Arial", "position": { "x": "50%", "y": "10%" } }, "media": {
     "kind": "image",
     "url": "src/frame_2.png",
     "duration_ms": 5000,
      "img_size": { "width": "400px", "height": "300px" } } },
-  { "text": "The moral life of man forms part of the subject-matter of the artist…", "speaker": "C3", "style": { "color": "#FF69B4", "font_size": "28px", "font_family": "Arial", "position": { "x": "50%", "y": "10%" } } },
-  { "text": "but the morality of art consists in the perfect use of an imperfect medium.", "speaker": "C5", "style": { "color": "#FFA500", "font_size": "28px", "font_family": "Arial", "position": { "x": "50%", "y": "10%" } } },
+  { "text": "The moral life of man forms part of the subject-matter of the artist…", "speaker": "C3", "style": { "color": "#FF69B4", "font_size": "28px", "font_family": "Arial", "position": { "x": "50%", "y": "10%" } }, "media": {
+    "kind": "image",
+    "url": "src/frame_3.png",
+    "duration_ms": 5000,
+     "img_size": { "width": "400px", "height": "300px" } } },
+  { "text": "but the morality of art consists in the perfect use of an imperfect medium.", "speaker": "C5", "style": { "color": "#FFA500", "font_size": "28px", "font_family": "Arial", "position": { "x": "50%", "y": "10%" } }, "media": {
+    "kind": "image",
+    "url": "src/frame_4.png",
+    "duration_ms": 5000,
+     "img_size": { "width": "400px", "height": "300px" } } },
   { "text": "No artist desires to prove anything.", "speaker": "C2", "style": { "color": "#8A2BE2", "font_size": "28px", "font_family": "Arial", "position": { "x": "50%", "y": "10%" } } },
   { "text": "No artist has ethical sympathies.", "speaker": "C6", "style": { "color": "#00CED1", "font_size": "28px", "font_family": "Arial", "position": { "x": "50%", "y": "10%" } } },
   { "text": "An ethical sympathy in an artist is an unpardonable mannerism of style.", "speaker": "C5", "style": { "color": "#FFA500", "font_size": "28px", "font_family": "Arial", "position": { "x": "50%", "y": "10%" } } },
