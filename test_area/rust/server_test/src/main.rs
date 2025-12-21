@@ -9,6 +9,11 @@ use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, time::Duration};
 use tokio::sync::broadcast;
 use tokio::time::sleep;
+use tokio::io::{self, AsyncBufReadExt, BufReader};
+use tokio::sync::watch;
+use crossterm::event::{self, Event, KeyCode};
+use crossterm::terminal::{enable_raw_mode, disable_raw_mode};
+use tokio::sync::mpsc;
 use axum::routing::get_service;
 use tower_http::services::ServeDir;
 
@@ -108,74 +113,112 @@ async fn main() {
     let (tx, _rx) = broadcast::channel::<LineMessage>(16);
     let lines = load_lines_from_file("src/short.json");
 
-    // Spawn a simple producer that sends sample lines every 4 seconds.
+    // Use a watch channel to track the current index
+    let (idx_tx, mut idx_rx) = watch::channel(0usize);
+    // Channel for keyboard commands
+    let (cmd_tx, mut cmd_rx) = mpsc::channel::<String>(8);
+
+    // Spawn a blocking thread for single-key input using crossterm
     {
-        let tx = tx.clone();
-        tokio::spawn(async move {
+        let cmd_tx = cmd_tx.clone();
+        std::thread::spawn(move || {
+            enable_raw_mode().unwrap();
+            println!("Press 'n' or → for next, 'p' or ← for previous, 'q' to quit.");
             loop {
-                for lm in &lines {
-                    let _ = tx.send(lm.clone());
-                    sleep(Duration::from_millis(
-                        lm.media
-                            .as_ref()
-                            .and_then(|m| m.duration_ms)
-                            .unwrap_or(5000),
-                    ))
-                    .await;
+                if event::poll(std::time::Duration::from_millis(100)).unwrap() {
+                    if let Event::Key(key_event) = event::read().unwrap() {
+                        let cmd = match key_event.code {
+                            KeyCode::Char('n') | KeyCode::Right => "n",
+                            KeyCode::Char('p') | KeyCode::Left => "p",
+                            KeyCode::Char('q') => {
+                                disable_raw_mode().unwrap();
+                                "q"
+                            },
+                            _ => continue,
+                        };
+                        let _ = cmd_tx.blocking_send(cmd.to_string());
+                    }
                 }
             }
         });
-        // tokio::spawn(async move {
-        //     let lines = vec![
-        //         LineMessage {
-        //             text: "Welcome to the creative captioning demo".into(),
-        //             style: Style {
-        //                 color: "#FFCC00".into(),
-        //                 font_size: "28px".into(),
-        //                 font_family: "Arial".into(),
-        //                 position: Position { x: "50%".into(), y: "10%".into() },
-        //             },
-        //             media: None,
-        //         },
-        //         LineMessage {
-        //             text: "Now showing an image behind the text".into(),
-        //             style: Style {
-        //                 color: "#FFFFFF".into(),
-        //                 font_size: "24px".into(),
-        //                 font_family: "Helvetica".into(),
-        //                 position: Position { x: "50%".into(), y: "80%".into() },
-        //             },
-        //             media: Some(Media {
-        //                 kind: "image".into(),
-        //                 url: "https://picsum.photos/1200/800".into(),
-        //                 duration_ms: Some(6000),
-        //             }),
-        //         },
-        //         LineMessage {
-        //             text: "And a short caption while a video plays".into(),
-        //             style: Style {
-        //                 color: "#00FF99".into(),
-        //                 font_size: "26px".into(),
-        //                 font_family: "Georgia".into(),
-        //                 position: Position { x: "10%".into(), y: "50%".into() },
-        //             },
-        //             media: Some(Media {
-        //                 kind: "video".into(),
-        //                 url: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4".into(),
-        //                 duration_ms: Some(8000),
-        //             }),
-        //         },
-        //     ];
+    }
 
-        //     loop {
-        //         for lm in &lines {
-        //             if tx.send(lm.clone()).is_err() {
-        //                 // no subscribers, continue; sender can ignore error
-        //             }
-        //             sleep(Duration::from_secs(4)).await;
-        //         }
-        //     }
-        // });
+    // Async task to process keyboard commands and update idx
+    {
+        let idx_tx = idx_tx.clone();
+        let lines = lines.clone();
+        tokio::spawn(async move {
+            let mut idx = 0usize;
+            let max_idx = lines.len().saturating_sub(1);
+
+            while let Some(line) = cmd_rx.recv().await {
+                println!("Keyboard input: {} (current idx: {})", line.trim(), idx);
+                match line.trim() {
+                    "n" => {
+                        if idx < max_idx {
+                            idx += 1;
+                        }
+                        println!("Next: idx = {}", idx);
+                        let _ = idx_tx.send(idx);
+                    }
+                    "p" => {
+                        if idx > 0 {
+                            idx -= 1;
+                        }
+                        println!("Prev: idx = {}", idx);
+                        let _ = idx_tx.send(idx);
+                    }
+                    "q" => {
+                        println!("Quitting.");
+                        std::process::exit(0);
+                    }
+                    _ => {
+                        println!("Unknown command. Use 'n', 'p', or 'q'.");
+                        let _ = idx_tx.send(idx); // Still send current idx
+                    }
+                }
+            }
+        });
+    }
+
+    // Spawn a simple producer that sends sample lines every 4 seconds.
+    // {
+    //     let tx = tx.clone();
+    //     tokio::spawn(async move {
+    //         loop {
+    //             for lm in &lines {
+    //                 let _ = tx.send(lm.clone());
+    //                 sleep(Duration::from_millis(
+    //                     lm.media
+    //                         .as_ref()
+    //                         .and_then(|m| m.duration_ms)
+    //                         .unwrap_or(5000),
+    //                 ))
+    //                 .await;
+    //             }
+    //         }
+    //     });
+    // }
+
+    // Producer task: sends the current line when index changes
+    {
+        let tx = tx.clone();
+        let lines = lines.clone();
+        tokio::spawn(async move {
+            // Send the first line immediately
+            if let Some(lm) = lines.get(0) {
+                println!("Producer: sending initial idx = 0");
+                let _ = tx.send(lm.clone());
+            }
+            loop {
+                idx_rx.changed().await.unwrap();
+                let idx = *idx_rx.borrow();
+                println!("Producer: sending idx = {}", idx);
+                if let Some(lm) = lines.get(idx) {
+                    let _ = tx.send(lm.clone());
+                }
+            }
+        });
     }
 
     let app = Router::new()
