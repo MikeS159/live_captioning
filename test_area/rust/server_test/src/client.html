@@ -50,11 +50,19 @@
 
   .line {
     position: absolute;
-    transition: opacity 0.5s ease;
     opacity: 0;
     text-align: center;
+    transition: opacity 0.5s ease;
   }
-  .visible { opacity: 1; }
+  .frame {
+    /* ...existing frame styles... */
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .fade {
+    opacity: 1 !important;
+    transition: opacity 0.5s ease;
+  }
 </style>
 </head>
 <body>
@@ -89,6 +97,15 @@ function connectWS() {
     const msg = JSON.parse(ev.data);
     console.log('incoming msg', msg);
 
+    // Fade out old content, then clear after fade
+    const oldChildren = Array.from(container.children);
+    if (oldChildren.length > 0) {
+      oldChildren.forEach(child => {
+        child.classList.remove('fade');
+        setTimeout(() => child.remove(), 500);
+      });
+    }
+
     // If image, wrap in frame container
     if (msg.media && msg.media.kind === 'image') {
       const frame = document.createElement('div');
@@ -110,6 +127,9 @@ function connectWS() {
       img.src = msg.media.url;
       frame.appendChild(img);
       container.appendChild(frame);
+
+      // Fade in
+      setTimeout(() => frame.classList.add('fade'), 10);
 
       // Wait for image to load before placing text-area (so sizes are stable)
       img.onload = () => {
@@ -140,14 +160,14 @@ function connectWS() {
       };
 
       // auto-remove after duration
-      setTimeout(() => {
-        frame.remove();
-      }, msg.media.duration_ms || 5000);
+      // setTimeout(() => {
+      //   frame.remove();
+      // }, msg.media.duration_ms || 5000);
     } 
     else {
       // Text-only message
       const div = document.createElement('div');
-      div.className = 'line visible';
+      div.className = 'line';
       div.textContent = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
 
       if (msg.style) {
@@ -160,9 +180,9 @@ function connectWS() {
       }
 
       container.appendChild(div);
-      // auto-remove after duration
-      setTimeout(() => div.classList.remove('visible'), msg.media?.duration_ms || 5000);
-    };
+      // Fade in
+      setTimeout(() => div.classList.add('fade'), 10);
+    }
 
     ws.onclose = () => setTimeout(connectWS, 100);
     ws.onerror = () => ws.close();
