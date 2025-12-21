@@ -111,7 +111,7 @@ fn load_lines_from_file(path: &str) -> Vec<LineMessage> {
 async fn main() {
     // broadcast channel for pushing LineMessage to all connected clients.
     let (tx, _rx) = broadcast::channel::<LineMessage>(16);
-    let lines = load_lines_from_file("src/short.json");
+    let lines = load_lines_from_file("src/01_scene1.json");
 
     // Use a watch channel to track the current index
     let (idx_tx, mut idx_rx) = watch::channel(0usize);
