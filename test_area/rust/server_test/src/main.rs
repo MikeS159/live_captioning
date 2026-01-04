@@ -16,12 +16,13 @@ use crossterm::terminal::{enable_raw_mode, disable_raw_mode};
 use tokio::sync::mpsc;
 use axum::routing::get_service;
 use tower_http::services::ServeDir;
+use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct LineMessage {
     text: String,
     speaker: Option<String>,
-    style: Style,
+    style: Option<Style>,
     media: Option<Media>,
 }
 
@@ -107,11 +108,28 @@ fn load_lines_from_file(path: &str) -> Vec<LineMessage> {
     serde_json::from_str::<Vec<LineMessage>>(&data).expect("Failed to parse lines.json")
 }
 
+fn load_speaker_styles(path: &str) -> HashMap<String, Style> {
+    let data = std::fs::read_to_string(path).expect("Failed to read speaker styles file");
+    serde_json::from_str::<HashMap<String, Style>>(&data).expect("Failed to parse speaker_styles.json")
+}
+
 #[tokio::main]
 async fn main() {
+    let speaker_styles = load_speaker_styles("src/speaker_styles.json");
     // broadcast channel for pushing LineMessage to all connected clients.
     let (tx, _rx) = broadcast::channel::<LineMessage>(16);
-    let lines = load_lines_from_file("src/01_scene1.json");
+    let mut lines = load_lines_from_file("src/00_prologue.json");
+
+    // Apply default style if missing
+    for line in &mut lines {
+        if line.style.is_none() {
+            if let Some(speaker) = &line.speaker {
+                if let Some(default_style) = speaker_styles.get(speaker) {
+                    line.style = Some(default_style.clone());
+                }
+            }
+        }
+    }
 
     // Use a watch channel to track the current index
     let (idx_tx, mut idx_rx) = watch::channel(0usize);
@@ -232,3 +250,4 @@ async fn main() {
     println!("Listening on http://{}", addr);
     axum::serve(listener, app).await.unwrap();
 }
+
