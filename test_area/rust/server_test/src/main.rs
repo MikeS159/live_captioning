@@ -31,6 +31,8 @@ struct Style {
     color: String,
     font_size: String,
     font_family: String,
+    font_style: String,
+    font_weight: String,
     position: Position,
 }
 

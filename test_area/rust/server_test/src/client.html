@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>Dorian Gray</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tangerine:wght@400;700&family=JetBrains+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 <style>
   body { margin:0; overflow:hidden; background:#000; }
   #container { position: relative; width:100vw; height:100vh; }
@@ -25,15 +28,13 @@
     object-fit: cover;
   }
 
-  .frame .text {
-    text-align: center;
-    pointer-events: none;
-    color: white;
-    font-weight: bold;
-    word-break: break-word;
-    max-width: 100%;
-  }
-
+.frame .text {
+  text-align: center;
+  pointer-events: none;
+  color: white;
+  word-break: break-word;
+  max-width: 100%;
+}
   /* padded overlay area for text */
   .frame-text-area {
     position: absolute;
@@ -148,12 +149,14 @@ function connectWS() {
         textDiv.textContent = msg.text ?? '';
 
         if (msg.style) {
-          if (msg.style.color) textDiv.style.color = msg.style.color;
-          if (msg.style.font_size) textDiv.style.fontSize = msg.style.font_size;
-          if (msg.style.font_family) textDiv.style.fontFamily = msg.style.font_family;
+          textDiv.style.color = msg.style.color;
+          textDiv.style.fontSize = msg.style.font_size;
+          textDiv.style.fontFamily = msg.style.font_family;
+          textDiv.style.fontWeight = msg.style.font_weight || '400';
+          textDiv.style.fontStyle = msg.style.font_style || 'normal';
+        }
           // allow multi-line wrapping inside the padded region
           textDiv.style.whiteSpace = 'normal';
-        }
 
         textArea.appendChild(textDiv);
         frame.appendChild(textArea);
@@ -170,23 +173,25 @@ function connectWS() {
       div.className = 'line';
       div.textContent = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
 
-      if (msg.style) {
-        div.style.color = msg.style.color;
-        div.style.fontSize = msg.style.font_size;
-        div.style.fontFamily = msg.style.font_family;
-        div.style.left = msg.style.position?.x || '50%';
-        div.style.top  = msg.style.position?.y || '0';
-        div.style.transform = 'translateX(-50%)';
-      }
+        if (msg.style) {
+          div.style.color = msg.style.color;
+          div.style.fontSize = msg.style.font_size;
+          div.style.fontFamily = msg.style.font_family;
+          div.style.fontWeight = msg.style.font_weight || '400';
+          div.style.fontStyle = msg.style.font_style || 'normal';
+          div.style.left = msg.style.position?.x || '50%';
+          div.style.top  = msg.style.position?.y || '0';
+          div.style.transform = 'translateX(-50%)';
+          // Note: Don't set position here - frame handles positioning
+        }
 
       container.appendChild(div);
       // Fade in
       setTimeout(() => div.classList.add('fade'), 10);
     }
-
-    ws.onclose = () => setTimeout(connectWS, 100);
-    ws.onerror = () => ws.close();
   }
+  ws.onclose = () => setTimeout(connectWS, 100);
+  ws.onerror = () => ws.close();
 }
 
 connectWS();

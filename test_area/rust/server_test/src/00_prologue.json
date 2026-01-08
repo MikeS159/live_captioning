@@ -27,6 +27,6 @@
   { "text": "complex,", "speaker": "C1" },
   { "text": "and vital.", "speaker": "C2" },
   { "text": "All art is quite useless.", "speaker": "All" },
-  { "text": "O Romeo, Romeo! Wherefore art thou Romeo? Deny thy father and refuse his name; Or, if thou wilt not, be but sworn my love, And I’ll no longer be a Capulet.", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "28px", "font_family": "Tangerine", "position": { "x": "50%", "y": "10%" } } },
-  { "text": "O Romeo, Romeo! Wherefore art thou Romeo? Deny thy father and refuse his name; Or, if thou wilt not, be but sworn my love, And I’ll no longer be a Capulet.", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "28px", "font_family": "JetBrains Mono", "position": { "x": "50%", "y": "10%" } } }
+  { "text": "O Romeo, Romeo! Wherefore art thou Romeo? Deny thy father and refuse his name; Or, if thou wilt not, be but sworn my love, And I’ll no longer be a Capulet.", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "44px", "font_family": "Tangerine", "font_style": "bold", "font_weight": "700", "position": { "x": "50%", "y": "10%" } } },
+  { "text": "O Romeo, Romeo! Wherefore art thou Romeo? Deny thy father and refuse his name; Or, if thou wilt not, be but sworn my love, And I’ll no longer be a Capulet.", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "24px", "font_family": "JetBrains Mono", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } } }
 ]
