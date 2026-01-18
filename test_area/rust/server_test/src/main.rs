@@ -120,7 +120,7 @@ async fn main() {
     let speaker_styles = load_speaker_styles("src/speaker_styles.json");
     // broadcast channel for pushing LineMessage to all connected clients.
     let (tx, _rx) = broadcast::channel::<LineMessage>(16);
-    let mut lines = load_lines_from_file("src/00_prologue.json");
+    let mut lines = load_lines_from_file("src/01_scene1.json");
 
     // Apply default style if missing
     for line in &mut lines {

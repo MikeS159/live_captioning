@@ -18,6 +18,7 @@
     "Mr E": { "color": "#C5A65C", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } },
     "Sir T": { "color": "#C5A65C", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } },
     "Servant": { "color": "#5E4F3D", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } },
+    "Butler": { "color": "#5E4F3D", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } },
     "Lady W": { "color": "#C5A65C", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } },
     "Sibyl": { "color": "#6B4FA3", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } },
     "Mrs V": { "color": "#6E5C7A", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } },
