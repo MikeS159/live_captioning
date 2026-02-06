@@ -98,13 +98,25 @@ function connectWS() {
     const msg = JSON.parse(ev.data);
     console.log('incoming msg', msg);
 
-    // Fade out old content, then clear after fade
-    const oldChildren = Array.from(container.children);
-    if (oldChildren.length > 0) {
-      oldChildren.forEach(child => {
-        child.classList.remove('fade');
-        setTimeout(() => child.remove(), 500);
+    // Video clearing logic: if incoming video message has url 'none', remove all videos
+    const msg = JSON.parse(ev.data);
+    if (msg.media && msg.media.kind === 'video' && msg.media.url === 'none') {
+      Array.from(container.children).forEach(child => {
+        if (child.classList.contains('frame') && child.querySelector('video')) {
+          child.remove();
+        }
       });
+      return;
+    }
+    // For non-video, fade out old content, then clear after fade
+    if (!(msg.media && msg.media.kind === 'video')) {
+      const oldChildren = Array.from(container.children);
+      if (oldChildren.length > 0) {
+        oldChildren.forEach(child => {
+          child.classList.remove('fade');
+          setTimeout(() => child.remove(), 500);
+        });
+      }
     }
 
     // If image, wrap in frame container
@@ -166,7 +178,65 @@ function connectWS() {
       // setTimeout(() => {
       //   frame.remove();
       // }, msg.media.duration_ms || 5000);
-    } 
+    }
+
+    // If video, wrap in frame container
+    else if (msg.media && msg.media.kind === 'video') {
+      // Check if a video with the same URL is already present
+      let existing = Array.from(container.children).find(child => {
+        return child.classList.contains('frame') && child.querySelector('video') && child.querySelector('video').src === msg.media.url;
+      });
+      if (existing) {
+        // Already showing this video, do nothing
+        return;
+      }
+      // Create frame for video
+      const frame = document.createElement('div');
+      frame.className = 'frame';
+      frame.style.left = (msg.style?.position?.x) || '50%';
+      frame.style.top  = (msg.style?.position?.y) || '0';
+      frame.style.transform = 'translate(-50%, 0)';
+      if (msg.media.img_size) {
+        frame.style.width  = msg.media.img_size.width;
+        frame.style.height = msg.media.img_size.height;
+      }
+      // Create text area (above video)
+      const textArea = document.createElement('div');
+      textArea.className = 'frame-text-area';
+      const pad = normalizePadding(msg.media?.padding);
+      if (pad) textArea.style.padding = pad;
+      const textDiv = document.createElement('div');
+      textDiv.className = 'text';
+      textDiv.textContent = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
+      if (msg.style) {
+        textDiv.style.color = msg.style.color;
+        textDiv.style.fontSize = msg.style.font_size;
+        textDiv.style.fontFamily = msg.style.font_family;
+        textDiv.style.fontWeight = msg.style.font_weight || '400';
+        textDiv.style.fontStyle = msg.style.font_style || 'normal';
+      }
+      textDiv.style.whiteSpace = 'normal';
+      textArea.appendChild(textDiv);
+      frame.appendChild(textArea);
+      // Create video element (below text)
+      const video = document.createElement('video');
+      video.src = msg.media.url;
+      video.autoplay = true;
+      video.controls = false;
+      video.loop = false;
+      video.style.width = '100%';
+      video.style.height = '100%';
+      video.style.position = 'relative';
+      video.style.zIndex = '0';
+      frame.appendChild(video);
+      container.appendChild(frame);
+      setTimeout(() => frame.classList.add('fade'), 10);
+      // Remove video when it finishes
+      video.addEventListener('ended', () => {
+        frame.classList.remove('fade');
+        setTimeout(() => frame.remove(), 500);
+      });
+    }
     else {
       // Text-only message
       const div = document.createElement('div');

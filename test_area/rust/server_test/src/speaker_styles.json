@@ -1,32 +1,32 @@
 {
     "All": { "color": "#FFFFFF", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } },
-    "C1": { "color": "#C84A4A", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" }, "media": {
+    "C1": { "color": "#C84A4A", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "1%" }, "media": {
     "kind": "image",
     "url": "src/frame_c1.png",
     "duration_ms": 5000,
     "padding": { "top": "0px", "right": "120px", "bottom": "0px", "left": "120px" } } },
-    "C2": { "color": "#D18A3A", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" }, "media": {
+    "C2": { "color": "#D18A3A", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "1%" }, "media": {
     "kind": "image",
     "url": "src/frame_c2.png",
     "duration_ms": 5000,
     "padding": { "top": "0px", "right": "120px", "bottom": "0px", "left": "120px" } } },
     "C3": { "color": "#D4C64A", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } },
-    "C4": { "color": "#5FA36A", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" }, "media": {
+    "C4": { "color": "#5FA36A", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "1%" }, "media": {
     "kind": "image",
     "url": "src/frame_c4.png",
     "duration_ms": 5000,
     "padding": { "top": "0px", "right": "120px", "bottom": "0px", "left": "120px" } } },
-    "C5": { "color": "#4F6FAE", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" }, "media": {
+    "C5": { "color": "#4F6FAE", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "1%" }, "media": {
     "kind": "image",
     "url": "src/frame_c5.png",
     "duration_ms": 5000,
     "padding": { "top": "0px", "right": "120px", "bottom": "0px", "left": "120px" } } },
-    "C6": { "color": "#7A4FA3", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" }, "media": {
+    "C6": { "color": "#7A4FA3", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "1%" }, "media": {
     "kind": "image",
     "url": "src/frame_c6.png",
     "duration_ms": 5000,
     "padding": { "top": "0px", "right": "120px", "bottom": "0px", "left": "120px" } } },
-    "C8": { "color": "#C06C84", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" }, "media": {
+    "C8": { "color": "#C06C84", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "1%" }, "media": {
     "kind": "image",
     "url": "src/frame_c8.png",
     "duration_ms": 5000,
