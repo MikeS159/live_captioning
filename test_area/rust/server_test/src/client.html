@@ -146,7 +146,7 @@ function connectWS() {
         // Now create the actual text element inside the padded area
         const textDiv = document.createElement('div');
         textDiv.className = 'text';
-        textDiv.textContent = msg.text ?? '';
+        textDiv.textContent = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
 
         if (msg.style) {
           textDiv.style.color = msg.style.color;
