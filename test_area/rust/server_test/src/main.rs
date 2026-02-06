@@ -11,7 +11,7 @@ use tokio::sync::broadcast;
 use tokio::time::sleep;
 use tokio::io::{self, AsyncBufReadExt, BufReader};
 use tokio::sync::watch;
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use crossterm::terminal::{enable_raw_mode, disable_raw_mode};
 use tokio::sync::mpsc;
 use axum::routing::get_service;
@@ -34,6 +34,7 @@ struct Style {
     font_style: String,
     font_weight: String,
     position: Position,
+    media: Option<Media>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -107,7 +108,35 @@ async fn ws_handler(
 
 fn load_lines_from_file(path: &str) -> Vec<LineMessage> {
     let data = std::fs::read_to_string(path).expect("Failed to read lines file");
-    serde_json::from_str::<Vec<LineMessage>>(&data).expect("Failed to parse lines.json")
+    let raw_lines: Vec<LineMessage> = serde_json::from_str(&data).expect("Failed to parse lines.json");
+    let max_len = 120; // Set your desired max length here
+
+    let mut result = Vec::new();
+
+    for line in raw_lines {
+        if line.text.len() <= max_len {
+            result.push(line);
+        } else {
+            // Split at full stops, keeping the full stop with the sentence
+            let mut buffer = String::new();
+            for sentence in line.text.split_inclusive('.') {
+                if buffer.len() + sentence.len() > max_len && !buffer.is_empty() {
+                    // Push current buffer as a new line
+                    let mut new_line = line.clone();
+                    new_line.text = buffer.trim().to_string();
+                    result.push(new_line);
+                    buffer.clear();
+                }
+                buffer.push_str(sentence);
+            }
+            if !buffer.trim().is_empty() {
+                let mut new_line = line.clone();
+                new_line.text = buffer.trim().to_string();
+                result.push(new_line);
+            }
+        }
+    }
+    result
 }
 
 fn load_speaker_styles(path: &str) -> HashMap<String, Style> {
@@ -120,7 +149,8 @@ async fn main() {
     let speaker_styles = load_speaker_styles("src/speaker_styles.json");
     // broadcast channel for pushing LineMessage to all connected clients.
     let (tx, _rx) = broadcast::channel::<LineMessage>(16);
-    let mut lines = load_lines_from_file("src/01_scene1.json");
+    let mut lines = load_lines_from_file("src/00_prologue.json");
+    //let mut lines = load_lines_from_file("src/01_scene1.json");
 
     // Apply default style if missing
     for line in &mut lines {
@@ -128,6 +158,16 @@ async fn main() {
             if let Some(speaker) = &line.speaker {
                 if let Some(default_style) = speaker_styles.get(speaker) {
                     line.style = Some(default_style.clone());
+                }
+            }
+        }
+        // Apply default media if missing and available in speaker_styles
+        if line.media.is_none() {
+            if let Some(speaker) = &line.speaker {
+                if let Some(default_style) = speaker_styles.get(speaker) {
+                    if let Some(default_media) = &default_style.media {
+                        line.media = Some(default_media.clone());
+                    }
                 }
             }
         }
@@ -147,16 +187,18 @@ async fn main() {
             loop {
                 if event::poll(std::time::Duration::from_millis(100)).unwrap() {
                     if let Event::Key(key_event) = event::read().unwrap() {
-                        let cmd = match key_event.code {
-                            KeyCode::Char('n') | KeyCode::Right => "n",
-                            KeyCode::Char('p') | KeyCode::Left => "p",
-                            KeyCode::Char('q') => {
-                                disable_raw_mode().unwrap();
-                                "q"
-                            },
-                            _ => continue,
-                        };
-                        let _ = cmd_tx.blocking_send(cmd.to_string());
+                        if let KeyEventKind::Press = key_event.kind {
+                            let cmd = match key_event.code {
+                                KeyCode::Char('n') | KeyCode::Right => "n",
+                                KeyCode::Char('p') | KeyCode::Left => "p",
+                                KeyCode::Char('q') => {
+                                    disable_raw_mode().unwrap();
+                                    "q"
+                                },
+                                _ => continue,
+                            };
+                            let _ = cmd_tx.blocking_send(cmd.to_string());
+                        }
                     }
                 }
             }
