@@ -99,7 +99,6 @@ function connectWS() {
     console.log('incoming msg', msg);
 
     // Video clearing logic: if incoming video message has url 'none', remove all videos
-    const msg = JSON.parse(ev.data);
     if (msg.media && msg.media.kind === 'video' && msg.media.url === 'none') {
       Array.from(container.children).forEach(child => {
         if (child.classList.contains('frame') && child.querySelector('video')) {
@@ -182,6 +181,12 @@ function connectWS() {
 
     // If video, wrap in frame container
     else if (msg.media && msg.media.kind === 'video') {
+      // Remove all images when video starts
+      Array.from(container.children).forEach(child => {
+        if (child.classList.contains('frame') && child.querySelector('img')) {
+          child.remove();
+        }
+      });
       // Check if a video with the same URL is already present
       let existing = Array.from(container.children).find(child => {
         return child.classList.contains('frame') && child.querySelector('video') && child.querySelector('video').src === msg.media.url;
@@ -190,23 +195,9 @@ function connectWS() {
         // Already showing this video, do nothing
         return;
       }
-      // Create frame for video
-      const frame = document.createElement('div');
-      frame.className = 'frame';
-      frame.style.left = (msg.style?.position?.x) || '50%';
-      frame.style.top  = (msg.style?.position?.y) || '0';
-      frame.style.transform = 'translate(-50%, 0)';
-      if (msg.media.img_size) {
-        frame.style.width  = msg.media.img_size.width;
-        frame.style.height = msg.media.img_size.height;
-      }
-      // Create text area (above video)
-      const textArea = document.createElement('div');
-      textArea.className = 'frame-text-area';
-      const pad = normalizePadding(msg.media?.padding);
-      if (pad) textArea.style.padding = pad;
+      // Create text element as a separate div
       const textDiv = document.createElement('div');
-      textDiv.className = 'text';
+      textDiv.className = 'line';
       textDiv.textContent = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
       if (msg.style) {
         textDiv.style.color = msg.style.color;
@@ -216,9 +207,24 @@ function connectWS() {
         textDiv.style.fontStyle = msg.style.font_style || 'normal';
       }
       textDiv.style.whiteSpace = 'normal';
-      textArea.appendChild(textDiv);
-      frame.appendChild(textArea);
-      // Create video element (below text)
+      textDiv.style.position = 'absolute';
+      textDiv.style.left = '50%';
+      textDiv.style.top = '5%';
+      textDiv.style.transform = 'translateX(-50%)';
+      textDiv.style.width = '100%';
+      textDiv.style.zIndex = '2';
+      container.appendChild(textDiv);
+
+      // Create video element as a separate frame
+      const frame = document.createElement('div');
+      frame.className = 'frame';
+      frame.style.left = (msg.style?.position?.x) || '50%';
+      frame.style.top  = (msg.style?.position?.y) || '75%';
+      frame.style.transform = 'translate(-50%, 0)';
+      if (msg.media.img_size) {
+        frame.style.width  = msg.media.img_size.width;
+        frame.style.height = msg.media.img_size.height;
+      }
       const video = document.createElement('video');
       video.src = msg.media.url;
       video.autoplay = true;
@@ -227,11 +233,14 @@ function connectWS() {
       video.style.width = '100%';
       video.style.height = '100%';
       video.style.position = 'relative';
-      video.style.zIndex = '0';
+      video.style.zIndex = '1';
       frame.appendChild(video);
       container.appendChild(frame);
-      setTimeout(() => frame.classList.add('fade'), 10);
-      // Remove video when it finishes
+      setTimeout(() => {
+        frame.classList.add('fade');
+        textDiv.classList.add('fade');
+      }, 10);
+      // Remove video when it finishes, but keep text
       video.addEventListener('ended', () => {
         frame.classList.remove('fade');
         setTimeout(() => frame.remove(), 500);

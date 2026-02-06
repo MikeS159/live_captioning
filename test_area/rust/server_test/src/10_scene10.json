@@ -53,15 +53,15 @@
   { "text": "But the portrait must now be hidden away at all costs.", "speaker": "C8" },
   { "text": "He could not run the risk of discovery again.", "speaker": "C5" },
   { "text": "He rang the bell for his housekeeper.", "speaker": "C6" },
-  { "text": "After a few moments, Mrs. Leaf bustled into the library.", "speaker": "MRS L" },
+  { "text": "After a few moments, Mrs. Leaf bustled into the library.", "speaker": "Mrs Leaf" },
   { "text": "He asked her for the key of the schoolroom.", "speaker": "C6" },
-  { "text": "The old schoolroom, Mr. Dorian? Why, it is full of dust. I must put it straight before you go into it. It is not fit for you to see, sir.", "speaker": "MRS L" },
+  { "text": "The old schoolroom, Mr. Dorian? Why, it is full of dust. I must put it straight before you go into it. It is not fit for you to see, sir.", "speaker": "Mrs Leaf" },
   { "text": "I don't want it put straight, Leaf. I only want the key.", "speaker": "Dorian" },
-  { "text": "Well, sir, you'll be covered with cobwebs if you go into it. Why, it hasn't been opened for nearly five years - not since his lordship died.", "speaker": "MRS L" },
+  { "text": "Well, sir, you'll be covered with cobwebs if you go into it. Why, it hasn't been opened for nearly five years - not since his lordship died.", "speaker": "Mrs Leaf" },
   { "text": "That does not matter. Give me the key.", "speaker": "Dorian" },
-  { "text": "And here is the key, sir I’ll have it off the bunch in a moment. But you don't think of living up there, sir, and you so comfortable here?", "speaker": "MRS L" },
+  { "text": "And here is the key, sir I’ll have it off the bunch in a moment. But you don't think of living up there, sir, and you so comfortable here?", "speaker": "Mrs Leaf" },
   { "text": "No, no. Thank you, Leaf. That will do. Send Peter and John to me.", "speaker": "Dorian" },
-  { "text": "Very good sir. (Exits)", "speaker": "MRS L" },
+  { "text": "Very good sir. (Exits)", "speaker": "Mrs Leaf" },
   { "text": "(Peter and John (ensemble) - take the picture to platform with some dialogue)", "speaker": "Stage" },
-  { "text": "Oh Sir - I quite forgot. Lord Wotton left something for you.", "speaker": "MRS L" }
+  { "text": "Oh Sir - I quite forgot. Lord Wotton left something for you.", "speaker": "Mrs Leaf" }
 ]
