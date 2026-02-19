@@ -43,8 +43,7 @@
     box-sizing: border-box;
     display: flex;
     justify-content: center;
-    align-items: center;
-
+    align-items: flex-start;
     /* DEBUG: visible overlay border so you can see padding area — remove or change color when happy */
     outline: 2px dashed rgba(255,255,255,0.12);
   }
@@ -91,9 +90,14 @@ function normalizePadding(p) {
   return `${ensureUnit(t)} ${ensureUnit(r)} ${ensureUnit(b)} ${ensureUnit(l)}`;
 }
 
+let reconnectDelay = 100;
 function connectWS() {
   const container = document.getElementById('container');
   const ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen = () => {
+    reconnectDelay = 100; // Reset delay on successful connection
+    console.log('WebSocket connected');
+  };
   ws.onmessage = ev => {
     const msg = JSON.parse(ev.data);
     console.log('incoming msg', msg);
@@ -157,7 +161,7 @@ function connectWS() {
         // Now create the actual text element inside the padded area
         const textDiv = document.createElement('div');
         textDiv.className = 'text';
-        textDiv.textContent = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
+        textDiv.innerHTML = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
 
         if (msg.style) {
           textDiv.style.color = msg.style.color;
@@ -198,7 +202,7 @@ function connectWS() {
       // Create text element as a separate div
       const textDiv = document.createElement('div');
       textDiv.className = 'line';
-      textDiv.textContent = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
+      textDiv.innerHTML = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
       if (msg.style) {
         textDiv.style.color = msg.style.color;
         textDiv.style.fontSize = msg.style.font_size;
@@ -250,7 +254,7 @@ function connectWS() {
       // Text-only message
       const div = document.createElement('div');
       div.className = 'line';
-      div.textContent = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
+      div.innerHTML = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
 
         if (msg.style) {
           div.style.color = msg.style.color;
@@ -269,10 +273,13 @@ function connectWS() {
       setTimeout(() => div.classList.add('fade'), 10);
     }
   }
-  ws.onclose = () => setTimeout(connectWS, 100);
+  ws.onclose = () => {
+    console.log('WebSocket closed, retrying in', reconnectDelay, 'ms');
+    setTimeout(connectWS, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 2, 5000); // Exponential backoff up to 5s
+  };
   ws.onerror = () => ws.close();
 }
-
 connectWS();
 </script>
 </body>

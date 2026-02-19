@@ -1,4 +1,5 @@
 [
+  { "text": "Prologue", "speaker": "N/A" },
   { "text": "The artist is the creator of beautiful things.", "speaker": "C1" },
   { "text": "To reveal art and conceal the artist is art's aim.", "speaker": "C2" },
   { "text": "Those who find ugly meanings in beautiful things are corrupt without being charming.", "speaker": "C8" },
@@ -36,5 +37,6 @@
     "duration_ms": 5000,
     "padding": { "top": "0px", "right": "120px", "bottom": "0px", "left": "120px" } } },
   { "text": "O Romeo, Romeo! Wherefore art thou Romeo? Deny thy father and refuse his name; Or, if thou wilt not, be but sworn my love, And I’ll no longer be a Capulet.", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "44px", "font_family": "Tangerine", "font_style": "bold", "font_weight": "700", "position": { "x": "50%", "y": "10%" } } },
-  { "text": "O Romeo, Romeo! Wherefore art thou Romeo? Deny thy father and refuse his name; Or, if thou wilt not, be but sworn my love, And I’ll no longer be a Capulet.", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "24px", "font_family": "JetBrains Mono", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } } }
+  { "text": "O Romeo, Romeo! Wherefore art thou Romeo? Deny thy father and refuse his name; Or, if thou wilt not, be but sworn my love, And I’ll no longer be a Capulet.", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "24px", "font_family": "JetBrains Mono", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } } },
+  { "text": "This is a <span style='color:red;font-weight:bold'>red</span> word.", "speaker": "All"}
 ]
