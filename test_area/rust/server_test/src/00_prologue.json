@@ -7,11 +7,7 @@
   { "text": "For these there is hope.", "speaker": "C5" },
   { "text": "There is no such thing as a moral or immoral book.", "speaker": "C6" },
   { "text": "Books are well written or badly written.", "speaker": "C5" },
-  { "text": "That is all.", "speaker": "All", "media": {
-    "kind": "video",
-    "url": "src/test_vid_1.MP4",
-    "duration_ms": 5000,
-    "padding": { "top": "0px", "right": "120px", "bottom": "0px", "left": "120px" } } },
+  { "text": "That is all.", "speaker": "All" },
   { "text": "The nineteenth century dislike of realism is the rage of Caliban seeing his own face in a glass.", "speaker": "C8" },
   { "text": "The nineteenth century dislike of romanticism is the rage of Caliban not seeing his own face in the glass.", "speaker": "C8" },
   { "text": "The moral life of man forms part of the subject-matter of the artist…", "speaker": "C2" },
@@ -31,12 +27,18 @@
   { "text": "new,", "speaker": "C8" },
   { "text": "complex,", "speaker": "C1" },
   { "text": "and vital.", "speaker": "C2" },
-  { "text": "All art is quite useless.", "speaker": "All", "media": {
-    "kind": "video",
-    "url": "src/test_vid_1.MP4",
-    "duration_ms": 5000,
-    "padding": { "top": "0px", "right": "120px", "bottom": "0px", "left": "120px" } } },
+  { "text": "All art is quite useless.", "speaker": "All" },
+  { "text": "And her voice — I’d never heard such a voice. It was very low at first, with deep mellow notes that seemed to fall singly upon one’s ear.", "speaker": "Dorian" },
+  { "text": "Go ask his name: if he be married My grave is like to be my wedding bed.", "speaker": "Sibyl" },
+  { "text": "Then it became a little louder, and sounded like a flute or a distant hautboy.", "speaker": "Dorian" },
+  { "text": "My only love sprung from my only hate! Too early seen unknown, and known too late! Prodigious birth of love it is to me, That I must love a loathed enemy", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "44px", "font_family": "Tangerine", "font_style": "bold", "font_weight": "700", "position": { "x": "50%", "y": "10%" } } },
+  { "text": "In the garden-scene it had all the tremulous ecstasy that one hears just before dawn when nightingales are singing.", "speaker": "Dorian" },
   { "text": "O Romeo, Romeo! Wherefore art thou Romeo? Deny thy father and refuse his name; Or, if thou wilt not, be but sworn my love, And I’ll no longer be a Capulet.", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "44px", "font_family": "Tangerine", "font_style": "bold", "font_weight": "700", "position": { "x": "50%", "y": "10%" } } },
+  { "text": "There were moments, later on, when it had the wild passion of violins.", "speaker": "Dorian" },
+  { "text": "O, swear not by the moon, the innocent moon, That monthly changes in her cycled orb, Lest that thy love prove likewise variable.", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "44px", "font_family": "Tangerine", "font_style": "bold", "font_weight": "700", "position": { "x": "50%", "y": "10%" } } },
+  { "text": "This is a <span style='color:red;font-weight:bold'>red</span> word.", "speaker": "All"},
+  { "text": "My only love sprung from my only hate! Too early seen unknown, and known too late! Prodigious birth of love it is to me, That I must love a loathed enemy", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "24px", "font_family": "JetBrains Mono", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } } },
   { "text": "O Romeo, Romeo! Wherefore art thou Romeo? Deny thy father and refuse his name; Or, if thou wilt not, be but sworn my love, And I’ll no longer be a Capulet.", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "24px", "font_family": "JetBrains Mono", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } } },
-  { "text": "This is a <span style='color:red;font-weight:bold'>red</span> word.", "speaker": "All"}
+  { "text": "O, swear not by the moon, the innocent moon, That monthly changes in her cycled orb, Lest that thy love prove likewise variable.", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "24px", "font_family": "JetBrains Mono", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } } },
+  { "text": "She is quite beautiful, but she can't act. I cannot sit through another moment. Let us go.", "speaker": "Lord Henery" }
 ]
