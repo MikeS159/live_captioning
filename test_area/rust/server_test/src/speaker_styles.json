@@ -2,7 +2,7 @@
     "Ensemble": { "color": "#FFFFFF", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "10%" } },
     "All": { "color": "#FFFFFF", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "0%" }, "media": {
     "kind": "image",
-    "url": "src/rainbowframe.png",
+    "url": "src/rainbowframe3.png",
     "duration_ms": 5000,
     "padding": { "top": "60px", "right": "120px", "bottom": "0px", "left": "120px" } } },
     "C1": { "color": "#C84A4A", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "1%" }, "media": {
