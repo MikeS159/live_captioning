@@ -150,7 +150,7 @@ async fn main() {
     // broadcast channel for pushing LineMessage to all connected clients.
     let (tx, _rx) = broadcast::channel::<LineMessage>(16);
     let mut lines = Vec::new();
-    for i in 0..=15 {
+    for i in 12..=15 {
         let file = if i == 0 {
             format!("src/00_prologue.json")
         } else {
@@ -297,7 +297,7 @@ async fn main() {
         .nest_service("/src", get_service(ServeDir::new("src")))
         .layer(Extension(tx));
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3159));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     println!("Listening on http://{}", addr);
     axum::serve(listener, app).await.unwrap();

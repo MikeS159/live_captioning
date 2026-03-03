@@ -4,7 +4,7 @@
     "kind": "image",
     "url": "src/rainbowframe3.png",
     "duration_ms": 5000,
-    "padding": { "top": "60px", "right": "120px", "bottom": "0px", "left": "120px" } } },
+    "padding": { "top": "120px", "right": "120px", "bottom": "0px", "left": "120px" } } },
     "C1": { "color": "#C84A4A", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "1%" }, "media": {
     "kind": "image",
     "url": "src/frame_c1.png",
@@ -20,6 +20,7 @@
     "kind": "image",
     "url": "src/frame_c4.png",
     "duration_ms": 5000,
+    
     "padding": { "top": "115px", "right": "120px", "bottom": "0px", "left": "120px" } } },
     "C5": { "color": "#5FA36A", "font_size": "24px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "1%" }, "media": {
     "kind": "image",
