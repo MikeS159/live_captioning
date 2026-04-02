@@ -10,13 +10,24 @@ use std::{net::SocketAddr, time::Duration};
 use tokio::sync::broadcast;
 use tokio::time::sleep;
 use tokio::io::{self, AsyncBufReadExt, BufReader};
+use tokio::net::TcpListener as TokioTcpListener;
 use tokio::sync::watch;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use crossterm::terminal::{enable_raw_mode, disable_raw_mode};
 use tokio::sync::mpsc;
 use axum::routing::get_service;
 use tower_http::services::ServeDir;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+
+macro_rules! raw_println {
+    ($($arg:tt)*) => {
+        {
+            use std::io::Write;
+            print!("{}\r\n", format!($($arg)*));
+            let _ = std::io::stdout().flush();
+        }
+    };
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct LineMessage {
@@ -24,6 +35,28 @@ struct LineMessage {
     speaker: Option<String>,
     style: Option<Style>,
     media: Option<Media>,
+}
+
+fn string_or_f64<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<f64, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrFloat {
+        Float(f64),
+        String(String),
+    }
+    match StringOrFloat::deserialize(deserializer)? {
+        StringOrFloat::Float(f) => Ok(f),
+        StringOrFloat::String(s) => s.parse::<f64>().map_err(serde::de::Error::custom),
+    }
+}
+
+#[derive(Deserialize, Debug)]
+struct TcpSegment {
+    #[serde(deserialize_with = "string_or_f64")]
+    start: f64,
+    #[serde(deserialize_with = "string_or_f64")]
+    end: f64,
+    text: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -66,6 +99,20 @@ struct ImageSize {
     height: String,
 }
 
+fn word_jaccard(a: &str, b: &str) -> f64 {
+    let set_a: HashSet<String> = a.split_whitespace()
+        .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
+        .filter(|w| !w.is_empty())
+        .collect();
+    let set_b: HashSet<String> = b.split_whitespace()
+        .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
+        .filter(|w| !w.is_empty())
+        .collect();
+    let intersection = set_a.intersection(&set_b).count() as f64;
+    let union = set_a.union(&set_b).count() as f64;
+    if union == 0.0 { 0.0 } else { intersection / union }
+}
+
 async fn html_handler() -> Html<&'static str> {
     Html(include_str!("client.html"))
 }
@@ -91,7 +138,7 @@ async fn ws_handler(
                             }
                         }
                         Err(e) => {
-                            eprintln!("serialize error: {}", e);
+                            eprint!("serialize error: {}\r\n", e);
                         }
                     }
                 }
@@ -99,7 +146,7 @@ async fn ws_handler(
                     break;
                 }
                 Err(broadcast::error::RecvError::Lagged(n)) => {
-                    eprintln!("lagged by {} messages", n);
+                    eprint!("lagged by {} messages\r\n", n);
                 }
             }
         }
@@ -149,16 +196,16 @@ async fn main() {
     let speaker_styles = load_speaker_styles("src/speaker_styles.json");
     // broadcast channel for pushing LineMessage to all connected clients.
     let (tx, _rx) = broadcast::channel::<LineMessage>(16);
-    let mut lines = Vec::new();
-    for i in 12..=15 {
-        let file = if i == 0 {
-            format!("src/00_prologue.json")
-        } else {
-            format!("src/{:02}_scene{}.json", i, i)
-        };
-        lines.extend(load_lines_from_file(&file));
-    }
-    //let mut lines = load_lines_from_file("src/14_scene14.json");
+    //let mut lines = Vec::new();
+    // for i in 1..=2 {
+    //     let file = if i == 0 {
+    //         format!("src/00_prologue.json")
+    //     } else {
+    //         format!("src/{:02}_scene{}.json", i, i)
+    //     };
+    //     lines.extend(load_lines_from_file(&file));
+    // }
+    let mut lines = load_lines_from_file("src/12_scene12.json");
 
     // Apply default style if missing
     for line in &mut lines {
@@ -191,7 +238,7 @@ async fn main() {
         let cmd_tx = cmd_tx.clone();
         std::thread::spawn(move || {
             enable_raw_mode().unwrap();
-            println!("Press 'n' or → for next, 'p' or ← for previous, 'q' to quit.");
+            raw_println!("Press 'n' or → for next, 'p' or ← for previous, 'q' to quit.");
             loop {
                 if event::poll(std::time::Duration::from_millis(100)).unwrap() {
                     if let Event::Key(key_event) = event::read().unwrap() {
@@ -218,33 +265,32 @@ async fn main() {
         let idx_tx = idx_tx.clone();
         let lines = lines.clone();
         tokio::spawn(async move {
-            let mut idx = 0usize;
             let max_idx = lines.len().saturating_sub(1);
 
             while let Some(line) = cmd_rx.recv().await {
-                println!("Keyboard input: {} (current idx: {})", line.trim(), idx);
+                let mut idx = *idx_tx.borrow();
+                raw_println!("Keyboard input: {} (current idx: {})", line.trim(), idx);
                 match line.trim() {
                     "n" => {
                         if idx < max_idx {
                             idx += 1;
                         }
-                        println!("Next: idx = {}", idx);
+                        raw_println!("Next: idx = {}", idx);
                         let _ = idx_tx.send(idx);
                     }
                     "p" => {
                         if idx > 0 {
                             idx -= 1;
                         }
-                        println!("Prev: idx = {}", idx);
+                        raw_println!("Prev: idx = {}", idx);
                         let _ = idx_tx.send(idx);
                     }
                     "q" => {
-                        println!("Quitting.");
+                        raw_println!("Quitting.");
                         std::process::exit(0);
                     }
                     _ => {
-                        println!("Unknown command. Use 'n', 'p', or 'q'.");
-                        let _ = idx_tx.send(idx); // Still send current idx
+                        raw_println!("Unknown command. Use 'n', 'p', or 'q'.");
                     }
                 }
             }
@@ -277,15 +323,99 @@ async fn main() {
         tokio::spawn(async move {
             // Send the first line immediately
             if let Some(lm) = lines.get(0) {
-                println!("Producer: sending initial idx = 0");
+                raw_println!("Producer: sending initial idx = 0");
                 let _ = tx.send(lm.clone());
             }
             loop {
                 idx_rx.changed().await.unwrap();
                 let idx = *idx_rx.borrow();
-                println!("Producer: sending idx = {}", idx);
+                raw_println!("Producer: sending idx = {}", idx);
                 if let Some(lm) = lines.get(idx) {
                     let _ = tx.send(lm.clone());
+                }
+            }
+        });
+    }
+
+    // Spawn TCP receiver task (listens on 127.0.0.1:5000 for newline-delimited JSON)
+    {
+        let tx = tx.clone();
+        let lines = lines.clone();
+        let idx_tx = idx_tx.clone();
+        tokio::spawn(async move {
+            let tcp_addr = "127.0.0.1:5000";
+            let listener = TokioTcpListener::bind(tcp_addr).await.expect("Failed to bind TCP listener");
+            raw_println!("TCP receiver listening on {}", tcp_addr);
+            loop {
+                match listener.accept().await {
+                    Ok((stream, addr)) => {
+                        raw_println!("TCP connected by {}", addr);
+                        let tx = tx.clone();
+                        let lines = lines.clone();
+                        let idx_tx = idx_tx.clone();
+                        tokio::spawn(async move {
+                            let reader = BufReader::new(stream);
+                            let mut tcp_lines = reader.lines();
+                            let mut accumulated = String::new();
+                            let max_accumulated_chars = 300;
+                            while let Ok(Some(line)) = tcp_lines.next_line().await {
+                                match serde_json::from_str::<TcpSegment>(&line) {
+                                    Ok(seg) => {
+                                        raw_println!("[{} -> {}] {}", seg.start, seg.end, seg.text);
+
+                                        // Accumulate text into rolling buffer
+                                        if !accumulated.is_empty() {
+                                            accumulated.push(' ');
+                                        }
+                                        accumulated.push_str(&seg.text);
+                                        // Trim to last max_accumulated_chars
+                                        if accumulated.len() > max_accumulated_chars {
+                                            let start = accumulated.len() - max_accumulated_chars;
+                                            // Find next word boundary to avoid cutting mid-word
+                                            let trim_at = accumulated[start..].find(' ').map(|p| start + p + 1).unwrap_or(start);
+                                            accumulated = accumulated[trim_at..].to_string();
+                                        }
+
+                                        // Constrain search window around current index
+                                        let current = *idx_tx.borrow();
+                                        let search_start = current.saturating_sub(2);
+                                        let search_end = (current + 15).min(lines.len());
+
+                                        let mut best_idx = current;
+                                        let mut best_score = f64::NEG_INFINITY;
+                                        for i in search_start..search_end {
+                                            let sim = word_jaccard(&accumulated, &lines[i].text);
+                                            let dist = (i as f64 - current as f64);
+                                            // Proximity bonus: closer lines score higher
+                                            let proximity = 1.0 / (1.0 + dist.abs() * 0.1);
+                                            // Backward penalty: moving backward is unlikely
+                                            let direction_penalty = if dist < 0.0 { 0.5 } else { 1.0 };
+                                            let score = sim * proximity * direction_penalty;
+                                            if score > best_score {
+                                                best_score = score;
+                                                best_idx = i;
+                                            }
+                                        }
+
+                                        raw_println!("  buf: \"{}...\"", &accumulated[..accumulated.len().min(80)]);
+                                        raw_println!("  -> matched idx {} (score {:.3}): {}", best_idx, best_score, lines[best_idx].text);
+
+                                        // Only send if index actually changed
+                                        if best_idx != *idx_tx.borrow() {
+                                            let _ = idx_tx.send(best_idx);
+                                        }
+                                    }
+                                    Err(e) => {
+                                        eprint!("TCP JSON parse error: {}\r\n", e);
+                                    }
+                                }
+                            }
+                            raw_println!("TCP connection closed.");
+                        });
+                    }
+                    Err(e) => {
+                        eprint!("TCP accept error: {}\r\n", e);
+                    }
                 }
             }
         });
@@ -299,7 +429,7 @@ async fn main() {
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3159));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    println!("Listening on http://{}", addr);
+    raw_println!("Listening on http://{}", addr);
     axum::serve(listener, app).await.unwrap();
 }
 
