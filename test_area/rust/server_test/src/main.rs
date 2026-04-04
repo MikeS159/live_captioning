@@ -7,6 +7,7 @@ use axum::{
 use axum::extract::ws::Utf8Bytes;
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, time::Duration};
+use std::time::Instant;
 use tokio::sync::broadcast;
 use tokio::time::sleep;
 use tokio::io::{self, AsyncBufReadExt, BufReader};
@@ -99,18 +100,19 @@ struct ImageSize {
     height: String,
 }
 
-fn word_jaccard(a: &str, b: &str) -> f64 {
-    let set_a: HashSet<String> = a.split_whitespace()
+/// What fraction of `line`'s words appear in `buffer`?
+fn containment(buffer: &str, line: &str) -> f64 {
+    let buf_words: HashSet<String> = buffer.split_whitespace()
         .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
         .filter(|w| !w.is_empty())
         .collect();
-    let set_b: HashSet<String> = b.split_whitespace()
+    let line_words: HashSet<String> = line.split_whitespace()
         .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
         .filter(|w| !w.is_empty())
         .collect();
-    let intersection = set_a.intersection(&set_b).count() as f64;
-    let union = set_a.union(&set_b).count() as f64;
-    if union == 0.0 { 0.0 } else { intersection / union }
+    if line_words.is_empty() { return 0.0; }
+    let found = line_words.intersection(&buf_words).count() as f64;
+    found / line_words.len() as f64
 }
 
 async fn html_handler() -> Html<&'static str> {
@@ -358,6 +360,9 @@ async fn main() {
                             let mut tcp_lines = reader.lines();
                             let mut accumulated = String::new();
                             let max_accumulated_chars = 150;
+                            let mut last_advance = Instant::now();
+                            let min_dwell = Duration::from_millis(1000);
+                            let mut prev_next_score: f64 = 0.0;
                             while let Ok(Some(line)) = tcp_lines.next_line().await {
                                 match serde_json::from_str::<TcpSegment>(&line) {
                                     Ok(seg) => {
@@ -377,23 +382,32 @@ async fn main() {
                                         }
 
                                         let current = *idx_tx.borrow();
-                                        let current_score = word_jaccard(&accumulated, &lines[current].text);
+                                        let current_score = containment(&accumulated, &lines[current].text);
                                         let next_score = if current + 1 < lines.len() {
-                                            word_jaccard(&accumulated, &lines[current + 1].text)
+                                            containment(&accumulated, &lines[current + 1].text)
                                         } else {
                                             0.0
                                         };
 
                                         raw_println!("  buf: \"{}...\"", &accumulated[..accumulated.len().min(80)]);
-                                        raw_println!("  idx {} score: {:.3} | idx {} score: {:.3}",
-                                            current, current_score, current + 1, next_score);
+                                        raw_println!("  idx {} score: {:.3} | idx+1 score: {:.3} (prev: {:.3})",
+                                            current, current_score, next_score, prev_next_score);
 
-                                        // Advance when next line matches better than current (with hysteresis)
-                                        if next_score > current_score + 0.05 && next_score > 0.1 {
-                                            let next_idx = current + 1;
-                                            raw_println!("  >> Crossover: advancing to idx {}: {}",
-                                                next_idx, lines[next_idx].text);
-                                            let _ = idx_tx.send(next_idx);
+                                        if last_advance.elapsed() >= min_dwell {
+                                            // Advance as soon as the next line's score increases
+                                            // (speech is starting to match the next line)
+                                            if next_score > prev_next_score && next_score > 0.1 {
+                                                let next_idx = current + 1;
+                                                raw_println!("  >> Next score rising ({:.3} -> {:.3}), advancing to idx {}: {}",
+                                                    prev_next_score, next_score, next_idx, lines[next_idx].text);
+                                                last_advance = Instant::now();
+                                                prev_next_score = 0.0; // Reset for the new next line
+                                                let _ = idx_tx.send(next_idx);
+                                            } else {
+                                                prev_next_score = next_score;
+                                            }
+                                        } else {
+                                            prev_next_score = next_score;
                                         }
                                     }
                                     Err(e) => {
