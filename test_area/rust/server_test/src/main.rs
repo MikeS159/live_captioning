@@ -101,8 +101,23 @@ struct ImageSize {
 }
 
 /// What fraction of `line`'s words appear in `buffer`?
+/// Recent words (last `recent_len` chars) count as a full match,
+/// older words count as a partial (0.3) match.
 fn containment(buffer: &str, line: &str) -> f64 {
-    let buf_words: HashSet<String> = buffer.split_whitespace()
+    let recent_len = 60;
+    let split_at = buffer.len().saturating_sub(recent_len);
+    // Find word boundary for the split
+    let split_at = if split_at == 0 { 0 } else {
+        buffer[split_at..].find(' ').map(|p| split_at + p + 1).unwrap_or(split_at)
+    };
+    let older = &buffer[..split_at];
+    let recent = &buffer[split_at..];
+
+    let recent_words: HashSet<String> = recent.split_whitespace()
+        .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
+        .filter(|w| !w.is_empty())
+        .collect();
+    let older_words: HashSet<String> = older.split_whitespace()
         .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
         .filter(|w| !w.is_empty())
         .collect();
@@ -111,8 +126,16 @@ fn containment(buffer: &str, line: &str) -> f64 {
         .filter(|w| !w.is_empty())
         .collect();
     if line_words.is_empty() { return 0.0; }
-    let found = line_words.intersection(&buf_words).count() as f64;
-    found / line_words.len() as f64
+
+    let mut score = 0.0;
+    for w in &line_words {
+        if recent_words.contains(w) {
+            score += 1.0;
+        } else if older_words.contains(w) {
+            score += 0.3;
+        }
+    }
+    score / line_words.len() as f64
 }
 
 async fn html_handler() -> Html<&'static str> {
@@ -363,6 +386,7 @@ async fn main() {
                             let mut last_advance = Instant::now();
                             let mut prev_next_score: f64 = 0.0;
                             let mut have_baseline = false; // Need one measurement before detecting rises
+                            let mut last_known_idx: usize = *idx_tx.borrow();
                             while let Ok(Some(line)) = tcp_lines.next_line().await {
                                 match serde_json::from_str::<TcpSegment>(&line) {
                                     Ok(seg) => {
@@ -382,6 +406,14 @@ async fn main() {
                                         }
 
                                         let current = *idx_tx.borrow();
+                                        // Detect external index change (keyboard override)
+                                        if current != last_known_idx {
+                                            raw_println!("  (external idx change {} -> {}, resetting baseline)", last_known_idx, current);
+                                            prev_next_score = 0.0;
+                                            have_baseline = false;
+                                            last_advance = Instant::now();
+                                            last_known_idx = current;
+                                        }
                                         // Dwell time scales with word count: ~100ms per word, minimum 1s
                                         let word_count = lines[current].text.split_whitespace().count() as u64;
                                         let min_dwell = Duration::from_millis((word_count * 100).max(1000));
@@ -410,6 +442,7 @@ async fn main() {
                                                 last_advance = Instant::now();
                                                 prev_next_score = 0.0;
                                                 have_baseline = false; // Need new baseline after advance
+                                                last_known_idx = next_idx;
                                                 let _ = idx_tx.send(next_idx);
                                             } else {
                                                 prev_next_score = next_score;
