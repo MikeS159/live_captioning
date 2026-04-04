@@ -385,6 +385,7 @@ async fn main() {
                             let max_accumulated_chars = 150;
                             let mut last_advance = Instant::now();
                             let mut prev_next_score: f64 = 0.0;
+                            let mut prev_skip_score: f64 = 0.0;
                             let mut have_baseline = false; // Need one measurement before detecting rises
                             let mut last_known_idx: usize = *idx_tx.borrow();
                             while let Ok(Some(line)) = tcp_lines.next_line().await {
@@ -410,6 +411,7 @@ async fn main() {
                                         if current != last_known_idx {
                                             raw_println!("  (external idx change {} -> {}, resetting baseline)", last_known_idx, current);
                                             prev_next_score = 0.0;
+                                            prev_skip_score = 0.0;
                                             have_baseline = false;
                                             last_advance = Instant::now();
                                             last_known_idx = current;
@@ -423,17 +425,23 @@ async fn main() {
                                         } else {
                                             0.0
                                         };
+                                        let skip_score = if current + 2 < lines.len() {
+                                            containment(&accumulated, &lines[current + 2].text)
+                                        } else {
+                                            0.0
+                                        };
 
                                         raw_println!("  buf: \"{}...\"", &accumulated[..accumulated.len().min(80)]);
-                                        raw_println!("  idx {} score: {:.3} | idx+1 score: {:.3} (prev: {:.3}, baseline: {})",
-                                            current, current_score, next_score, prev_next_score, have_baseline);
+                                        raw_println!("  idx {} score: {:.3} | idx+1 score: {:.3} (prev: {:.3}) | idx+2 score: {:.3} (prev: {:.3}, baseline: {})",
+                                            current, current_score, next_score, prev_next_score, skip_score, prev_skip_score, have_baseline);
 
                                         if last_advance.elapsed() >= min_dwell {
                                             if !have_baseline {
                                                 // First measurement after advance — record baseline, don't act
                                                 prev_next_score = next_score;
+                                                prev_skip_score = skip_score;
                                                 have_baseline = true;
-                                                raw_println!("  (baseline set: {:.3})", next_score);
+                                                raw_println!("  (baseline set: next {:.3}, skip {:.3})", next_score, skip_score);
                                             } else if next_score > prev_next_score && next_score > 0.1 {
                                                 // Score is rising above baseline — advance
                                                 let next_idx = current + 1;
@@ -441,15 +449,29 @@ async fn main() {
                                                     prev_next_score, next_score, next_idx, lines[next_idx].text);
                                                 last_advance = Instant::now();
                                                 prev_next_score = 0.0;
+                                                prev_skip_score = 0.0;
                                                 have_baseline = false; // Need new baseline after advance
                                                 last_known_idx = next_idx;
                                                 let _ = idx_tx.send(next_idx);
+                                            } else if skip_score > prev_skip_score && skip_score > next_score + 0.1 && skip_score > 0.2 {
+                                                // idx+2 is rising and beats both current and next — line was skipped
+                                                let skip_idx = current + 2;
+                                                raw_println!("  >> Skip detected ({:.3} -> {:.3}), jumping to idx {}: {}",
+                                                    prev_skip_score, skip_score, skip_idx, lines[skip_idx].text);
+                                                last_advance = Instant::now();
+                                                prev_next_score = 0.0;
+                                                prev_skip_score = 0.0;
+                                                have_baseline = false;
+                                                last_known_idx = skip_idx;
+                                                let _ = idx_tx.send(skip_idx);
                                             } else {
                                                 prev_next_score = next_score;
+                                                prev_skip_score = skip_score;
                                             }
                                         } else {
-                                            // Still in dwell period — just track score
+                                            // Still in dwell period — just track scores
                                             prev_next_score = next_score;
+                                            prev_skip_score = skip_score;
                                         }
                                     }
                                     Err(e) => {
