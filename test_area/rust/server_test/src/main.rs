@@ -7,7 +7,6 @@ use axum::{
 use axum::extract::ws::Utf8Bytes;
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, time::Duration};
-use std::time::Instant;
 use tokio::sync::broadcast;
 use tokio::time::sleep;
 use tokio::io::{self, AsyncBufReadExt, BufReader};
@@ -358,9 +357,7 @@ async fn main() {
                             let reader = BufReader::new(stream);
                             let mut tcp_lines = reader.lines();
                             let mut accumulated = String::new();
-                            let max_accumulated_chars = 300;
-                            let mut last_change = Instant::now();
-                            let mut last_idx = *idx_tx.borrow();
+                            let max_accumulated_chars = 150;
                             while let Ok(Some(line)) = tcp_lines.next_line().await {
                                 match serde_json::from_str::<TcpSegment>(&line) {
                                     Ok(seg) => {
@@ -379,50 +376,24 @@ async fn main() {
                                             accumulated = accumulated[trim_at..].to_string();
                                         }
 
-                                        // Constrain search window around current index
                                         let current = *idx_tx.borrow();
-                                        let search_start = current.saturating_sub(2);
-                                        let search_end = (current + 15).min(lines.len());
+                                        let current_score = word_jaccard(&accumulated, &lines[current].text);
+                                        let next_score = if current + 1 < lines.len() {
+                                            word_jaccard(&accumulated, &lines[current + 1].text)
+                                        } else {
+                                            0.0
+                                        };
 
-                                        let mut best_idx = current;
-                                        let mut best_score = f64::NEG_INFINITY;
+                                        raw_println!("  buf: \"{}...\"", &accumulated[..accumulated.len().min(80)]);
+                                        raw_println!("  idx {} score: {:.3} | idx {} score: {:.3}",
+                                            current, current_score, current + 1, next_score);
 
-                                        // Staleness: how long current line has been showing
-                                        let elapsed_secs = last_change.elapsed().as_secs_f64();
-                                        // Expected display time: ~0.2s per word, minimum 1.5s
-                                        let current_words = lines[current].text.split_whitespace().count() as f64;
-                                        let expected_secs = (current_words * 0.2).max(1.5);
-                                        // Staleness ratio: >1.0 means overdue
-                                        let staleness = (elapsed_secs / expected_secs).max(0.0);
-
-                                        for i in search_start..search_end {
-                                            let sim = word_jaccard(&accumulated, &lines[i].text);
-                                            let dist = i as f64 - current as f64;
-                                            // Proximity bonus: closer lines score higher
-                                            let proximity = 1.0 / (1.0 + dist.abs() * 0.05);
-                                            // Backward penalty: moving backward is unlikely
-                                            let direction_penalty = if dist < 0.0 { 0.5 } else { 1.0 };
-                                            // Staleness bonus: forward lines get a boost when overdue
-                                            let staleness_bonus = if dist > 0.0 && staleness > 1.0 {
-                                                1.0 + (staleness - 1.0) * 0.3
-                                            } else {
-                                                1.0
-                                            };
-                                            let score = sim * proximity * direction_penalty * staleness_bonus;
-                                            if score > best_score {
-                                                best_score = score;
-                                                best_idx = i;
-                                            }
-                                        }
-
-                                        raw_println!("  buf: \"{}...\"  staleness: {:.1}x", &accumulated[..accumulated.len().min(80)], staleness);
-                                        raw_println!("  -> matched idx {} (score {:.3}): {}", best_idx, best_score, lines[best_idx].text);
-
-                                        // Only send if index actually changed
-                                        if best_idx != *idx_tx.borrow() {
-                                            last_change = Instant::now();
-                                            last_idx = best_idx;
-                                            let _ = idx_tx.send(best_idx);
+                                        // Advance when next line matches better than current (with hysteresis)
+                                        if next_score > current_score + 0.05 && next_score > 0.1 {
+                                            let next_idx = current + 1;
+                                            raw_println!("  >> Crossover: advancing to idx {}: {}",
+                                                next_idx, lines[next_idx].text);
+                                            let _ = idx_tx.send(next_idx);
                                         }
                                     }
                                     Err(e) => {
