@@ -7,6 +7,7 @@ use axum::{
 use axum::extract::ws::Utf8Bytes;
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, time::Duration};
+use std::time::Instant;
 use tokio::sync::broadcast;
 use tokio::time::sleep;
 use tokio::io::{self, AsyncBufReadExt, BufReader};
@@ -358,6 +359,8 @@ async fn main() {
                             let mut tcp_lines = reader.lines();
                             let mut accumulated = String::new();
                             let max_accumulated_chars = 300;
+                            let mut last_change = Instant::now();
+                            let mut last_idx = *idx_tx.borrow();
                             while let Ok(Some(line)) = tcp_lines.next_line().await {
                                 match serde_json::from_str::<TcpSegment>(&line) {
                                     Ok(seg) => {
@@ -383,25 +386,42 @@ async fn main() {
 
                                         let mut best_idx = current;
                                         let mut best_score = f64::NEG_INFINITY;
+
+                                        // Staleness: how long current line has been showing
+                                        let elapsed_secs = last_change.elapsed().as_secs_f64();
+                                        // Expected display time: ~0.2s per word, minimum 1.5s
+                                        let current_words = lines[current].text.split_whitespace().count() as f64;
+                                        let expected_secs = (current_words * 0.2).max(1.5);
+                                        // Staleness ratio: >1.0 means overdue
+                                        let staleness = (elapsed_secs / expected_secs).max(0.0);
+
                                         for i in search_start..search_end {
                                             let sim = word_jaccard(&accumulated, &lines[i].text);
-                                            let dist = (i as f64 - current as f64);
+                                            let dist = i as f64 - current as f64;
                                             // Proximity bonus: closer lines score higher
-                                            let proximity = 1.0 / (1.0 + dist.abs() * 0.1);
+                                            let proximity = 1.0 / (1.0 + dist.abs() * 0.05);
                                             // Backward penalty: moving backward is unlikely
                                             let direction_penalty = if dist < 0.0 { 0.5 } else { 1.0 };
-                                            let score = sim * proximity * direction_penalty;
+                                            // Staleness bonus: forward lines get a boost when overdue
+                                            let staleness_bonus = if dist > 0.0 && staleness > 1.0 {
+                                                1.0 + (staleness - 1.0) * 0.3
+                                            } else {
+                                                1.0
+                                            };
+                                            let score = sim * proximity * direction_penalty * staleness_bonus;
                                             if score > best_score {
                                                 best_score = score;
                                                 best_idx = i;
                                             }
                                         }
 
-                                        raw_println!("  buf: \"{}...\"", &accumulated[..accumulated.len().min(80)]);
+                                        raw_println!("  buf: \"{}...\"  staleness: {:.1}x", &accumulated[..accumulated.len().min(80)], staleness);
                                         raw_println!("  -> matched idx {} (score {:.3}): {}", best_idx, best_score, lines[best_idx].text);
 
                                         // Only send if index actually changed
                                         if best_idx != *idx_tx.borrow() {
+                                            last_change = Instant::now();
+                                            last_idx = best_idx;
                                             let _ = idx_tx.send(best_idx);
                                         }
                                     }
