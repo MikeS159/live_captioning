@@ -363,6 +363,7 @@ async fn main() {
                             let mut last_advance = Instant::now();
                             let min_dwell = Duration::from_millis(1000);
                             let mut prev_next_score: f64 = 0.0;
+                            let mut have_baseline = false; // Need one measurement before detecting rises
                             while let Ok(Some(line)) = tcp_lines.next_line().await {
                                 match serde_json::from_str::<TcpSegment>(&line) {
                                     Ok(seg) => {
@@ -390,23 +391,29 @@ async fn main() {
                                         };
 
                                         raw_println!("  buf: \"{}...\"", &accumulated[..accumulated.len().min(80)]);
-                                        raw_println!("  idx {} score: {:.3} | idx+1 score: {:.3} (prev: {:.3})",
-                                            current, current_score, next_score, prev_next_score);
+                                        raw_println!("  idx {} score: {:.3} | idx+1 score: {:.3} (prev: {:.3}, baseline: {})",
+                                            current, current_score, next_score, prev_next_score, have_baseline);
 
                                         if last_advance.elapsed() >= min_dwell {
-                                            // Advance as soon as the next line's score increases
-                                            // (speech is starting to match the next line)
-                                            if next_score > prev_next_score && next_score > 0.1 {
+                                            if !have_baseline {
+                                                // First measurement after advance — record baseline, don't act
+                                                prev_next_score = next_score;
+                                                have_baseline = true;
+                                                raw_println!("  (baseline set: {:.3})", next_score);
+                                            } else if next_score > prev_next_score && next_score > 0.1 {
+                                                // Score is rising above baseline — advance
                                                 let next_idx = current + 1;
                                                 raw_println!("  >> Next score rising ({:.3} -> {:.3}), advancing to idx {}: {}",
                                                     prev_next_score, next_score, next_idx, lines[next_idx].text);
                                                 last_advance = Instant::now();
-                                                prev_next_score = 0.0; // Reset for the new next line
+                                                prev_next_score = 0.0;
+                                                have_baseline = false; // Need new baseline after advance
                                                 let _ = idx_tx.send(next_idx);
                                             } else {
                                                 prev_next_score = next_score;
                                             }
                                         } else {
+                                            // Still in dwell period — just track score
                                             prev_next_score = next_score;
                                         }
                                     }
