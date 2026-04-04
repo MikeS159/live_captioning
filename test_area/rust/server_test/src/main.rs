@@ -361,7 +361,6 @@ async fn main() {
                             let mut accumulated = String::new();
                             let max_accumulated_chars = 150;
                             let mut last_advance = Instant::now();
-                            let min_dwell = Duration::from_millis(1000);
                             let mut prev_next_score: f64 = 0.0;
                             let mut have_baseline = false; // Need one measurement before detecting rises
                             while let Ok(Some(line)) = tcp_lines.next_line().await {
@@ -383,6 +382,9 @@ async fn main() {
                                         }
 
                                         let current = *idx_tx.borrow();
+                                        // Dwell time scales with word count: ~100ms per word, minimum 1s
+                                        let word_count = lines[current].text.split_whitespace().count() as u64;
+                                        let min_dwell = Duration::from_millis((word_count * 100).max(1000));
                                         let current_score = containment(&accumulated, &lines[current].text);
                                         let next_score = if current + 1 < lines.len() {
                                             containment(&accumulated, &lines[current + 1].text)
