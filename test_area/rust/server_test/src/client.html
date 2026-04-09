@@ -35,10 +35,10 @@
   color: white;
   word-break: break-word;
   width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   font-size: 4vw;
   margin: 0;
   padding: 0;
@@ -63,12 +63,9 @@
     text-align: center;
     transition: opacity 0.5s ease;
     width: 100vw;
-    height: 100vh;
     left: 0;
-    top: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    top: 50%;
+    transform: translateY(-50%);
     font-size: 4vw;
     margin: 0;
     padding: 0;
@@ -181,7 +178,7 @@ function connectWS() {
         // Now create the actual text element inside the padded area
         const textDiv = document.createElement('div');
         textDiv.className = 'text';
-        textDiv.innerHTML = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
+        textDiv.innerHTML = msg.text;
 
         if (msg.style) {
           textDiv.style.color = msg.style.color;
@@ -222,7 +219,7 @@ function connectWS() {
       // Create text element as a separate div
       const textDiv = document.createElement('div');
       textDiv.className = 'line';
-      textDiv.innerHTML = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
+      textDiv.innerHTML = msg.text;
       if (msg.style) {
         textDiv.style.color = msg.style.color;
         textDiv.style.fontSize = msg.style.font_size;
@@ -274,23 +271,31 @@ function connectWS() {
       // Text-only message
       const div = document.createElement('div');
       div.className = 'line';
-      div.innerHTML = msg.speaker ? `${msg.speaker}: ${msg.text}` : msg.text;
+      div.innerHTML = msg.text;
 
-        if (msg.style) {
-          div.style.color = msg.style.color;
-          div.style.fontSize = msg.style.font_size;
-          div.style.fontFamily = msg.style.font_family;
-          div.style.fontWeight = msg.style.font_weight || '400';
-          div.style.fontStyle = msg.style.font_style || 'normal';
-          div.style.left = msg.style.position?.x || '50%';
-          div.style.top  = msg.style.position?.y || '0';
-          div.style.transform = 'translateX(-50%)';
-          // Note: Don't set position here - frame handles positioning
-        }
+      if (msg.style) {
+        div.style.color = msg.style.color;
+        div.style.fontSize = msg.style.font_size;
+        div.style.fontFamily = msg.style.font_family;
+        div.style.fontWeight = msg.style.font_weight || '400';
+        div.style.fontStyle = msg.style.font_style || 'normal';
+        div.style.left = msg.style.position?.x || '50%';
+        div.style.top  = msg.style.position?.y || '0';
+        div.style.transform = 'translateX(-50%)';
+        // Note: Don't set position here - frame handles positioning
+      }
 
       container.appendChild(div);
       // Fade in
       setTimeout(() => div.classList.add('fade'), 10);
+
+      // Fade out after 500ms * number of words
+      const wordCount = (msg.text || '').split(/\s+/).filter(Boolean).length;
+      const fadeDelay = Math.max(5000, wordCount * 500); // at least 5s
+      setTimeout(() => {
+        div.classList.remove('fade');
+        setTimeout(() => div.remove(), 500); // match fade-out duration
+      }, fadeDelay);
     }
   }
   ws.onclose = () => {
