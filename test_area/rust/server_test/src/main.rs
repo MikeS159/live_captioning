@@ -138,6 +138,32 @@ fn containment(buffer: &str, line: &str) -> f64 {
     score / line_words.len() as f64
 }
 
+fn truncate_line(text: &str, max_len: usize) -> String {
+    if text.len() <= max_len {
+        text.to_string()
+    } else {
+        let half = (max_len - 3) / 2;
+        format!("{}...{}", &text[..half], &text[text.len() - half..])
+    }
+}
+
+fn print_context_window(lines: &[LineMessage], current: usize, auto_advance: bool) {
+    let display_max = 100;
+    let marker = if auto_advance { ">>>" } else { "xxx" };
+    raw_println!("──────────────────────────────────────────────────────");
+    let start = current.saturating_sub(10);
+    let end = (current + 10).min(lines.len().saturating_sub(1));
+    for i in start..=end {
+        let truncated = truncate_line(&lines[i].text, display_max);
+        if i == current {
+            raw_println!("{} {:>3}: {}\n", marker, i, truncated);
+        } else {
+            raw_println!("    {:>3}: {}\n", i, truncated);
+        }
+    }
+    raw_println!("──────────────────────────────────────────────────────");
+}
+
 async fn html_handler() -> Html<&'static str> {
     Html(include_str!("client.html"))
 }
@@ -218,19 +244,28 @@ fn load_speaker_styles(path: &str) -> HashMap<String, Style> {
 
 #[tokio::main]
 async fn main() {
+    use std::env;
+    let args: Vec<String> = env::args().collect();
+    let (start, stop) = if args.len() >= 3 {
+        let s = args[1].parse::<usize>().unwrap_or(0);
+        let e = args[2].parse::<usize>().unwrap_or(8);
+        (s, e)
+    } else {
+        (0, 8)
+    };
     let speaker_styles = load_speaker_styles("src/speaker_styles.json");
     // broadcast channel for pushing LineMessage to all connected clients.
     let (tx, _rx) = broadcast::channel::<LineMessage>(16);
-    //let mut lines = Vec::new();
-    // for i in 1..=2 {
-    //     let file = if i == 0 {
-    //         format!("src/00_prologue.json")
-    //     } else {
-    //         format!("src/{:02}_scene{}.json", i, i)
-    //     };
-    //     lines.extend(load_lines_from_file(&file));
-    // }
-    let mut lines = load_lines_from_file("src/12_scene12.json");
+    let mut lines = Vec::new();
+    for i in start..=stop {
+        let file = if i == 0 {
+            format!("src/00_prologue.json")
+        } else {
+            format!("src/{:02}_scene{}.json", i, i)
+        };
+        lines.extend(load_lines_from_file(&file));
+    }
+    //let mut lines = load_lines_from_file("src/12_scene12.json");
 
     // Apply default style if missing
     for line in &mut lines {
@@ -255,6 +290,8 @@ async fn main() {
 
     // Use a watch channel to track the current index
     let (idx_tx, mut idx_rx) = watch::channel(0usize);
+    // Watch channel to toggle auto-advance on/off
+    let (auto_tx, auto_rx) = watch::channel(true);
     // Channel for keyboard commands
     let (cmd_tx, mut cmd_rx) = mpsc::channel::<String>(8);
 
@@ -271,6 +308,8 @@ async fn main() {
                             let cmd = match key_event.code {
                                 KeyCode::Char('n') | KeyCode::Right => "n",
                                 KeyCode::Char('p') | KeyCode::Left => "p",
+                                KeyCode::Char('h') => "h",
+                                KeyCode::Char('g') => "g",
                                 KeyCode::Char('q') => {
                                     disable_raw_mode().unwrap();
                                     "q"
@@ -288,35 +327,45 @@ async fn main() {
     // Async task to process keyboard commands and update idx
     {
         let idx_tx = idx_tx.clone();
+        let auto_tx = auto_tx.clone();
+        let auto_rx_kb = auto_rx.clone();
         let lines = lines.clone();
         tokio::spawn(async move {
             let max_idx = lines.len().saturating_sub(1);
 
             while let Some(line) = cmd_rx.recv().await {
                 let mut idx = *idx_tx.borrow();
-                raw_println!("Keyboard input: {} (current idx: {})", line.trim(), idx);
+                let auto = *auto_rx_kb.borrow();
                 match line.trim() {
                     "n" => {
                         if idx < max_idx {
                             idx += 1;
                         }
-                        raw_println!("Next: idx = {}", idx);
                         let _ = idx_tx.send(idx);
+                        print_context_window(&lines, idx, auto);
                     }
                     "p" => {
                         if idx > 0 {
                             idx -= 1;
                         }
-                        raw_println!("Prev: idx = {}", idx);
                         let _ = idx_tx.send(idx);
+                        print_context_window(&lines, idx, auto);
+                    }
+                    "h" => {
+                        let _ = auto_tx.send(false);
+                        raw_println!("Auto-advance DISABLED");
+                        print_context_window(&lines, idx, false);
+                    }
+                    "g" => {
+                        let _ = auto_tx.send(true);
+                        raw_println!("Auto-advance ENABLED");
+                        print_context_window(&lines, idx, true);
                     }
                     "q" => {
                         raw_println!("Quitting.");
                         std::process::exit(0);
                     }
-                    _ => {
-                        raw_println!("Unknown command. Use 'n', 'p', or 'q'.");
-                    }
+                    _ => {}
                 }
             }
         });
@@ -348,13 +397,14 @@ async fn main() {
         tokio::spawn(async move {
             // Send the first line immediately
             if let Some(lm) = lines.get(0) {
-                raw_println!("Producer: sending initial idx = 0");
+                //raw_println!("Producer: sending initial idx = 0");
                 let _ = tx.send(lm.clone());
+                print_context_window(&lines, 0, true);
             }
             loop {
                 idx_rx.changed().await.unwrap();
                 let idx = *idx_rx.borrow();
-                raw_println!("Producer: sending idx = {}", idx);
+                //raw_println!("Producer: sending idx = {}", idx);
                 if let Some(lm) = lines.get(idx) {
                     let _ = tx.send(lm.clone());
                 }
@@ -367,6 +417,7 @@ async fn main() {
         let tx = tx.clone();
         let lines = lines.clone();
         let idx_tx = idx_tx.clone();
+        let auto_rx_tcp = auto_rx.clone();
         tokio::spawn(async move {
             let tcp_addr = "127.0.0.1:5000";
             let listener = TokioTcpListener::bind(tcp_addr).await.expect("Failed to bind TCP listener");
@@ -378,6 +429,7 @@ async fn main() {
                         let tx = tx.clone();
                         let lines = lines.clone();
                         let idx_tx = idx_tx.clone();
+                        let auto_rx_conn = auto_rx_tcp.clone();
                         tokio::spawn(async move {
                             let reader = BufReader::new(stream);
                             let mut tcp_lines = reader.lines();
@@ -391,7 +443,7 @@ async fn main() {
                             while let Ok(Some(line)) = tcp_lines.next_line().await {
                                 match serde_json::from_str::<TcpSegment>(&line) {
                                     Ok(seg) => {
-                                        raw_println!("[{} -> {}] {}", seg.start, seg.end, seg.text);
+                                        // raw_println!("[{} -> {}] {}", seg.start, seg.end, seg.text);
 
                                         // Accumulate text into rolling buffer
                                         if !accumulated.is_empty() {
@@ -409,7 +461,7 @@ async fn main() {
                                         let current = *idx_tx.borrow();
                                         // Detect external index change (keyboard override)
                                         if current != last_known_idx {
-                                            raw_println!("  (external idx change {} -> {}, resetting baseline)", last_known_idx, current);
+                                            // raw_println!("  (external idx change {} -> {}, resetting baseline)", last_known_idx, current);
                                             prev_next_score = 0.0;
                                             prev_skip_score = 0.0;
                                             have_baseline = false;
@@ -418,7 +470,7 @@ async fn main() {
                                         }
                                         // Dwell time scales with word count: ~100ms per word, minimum 1s
                                         let word_count = lines[current].text.split_whitespace().count() as u64;
-                                        let min_dwell = Duration::from_millis((word_count * 100).max(1000));
+                                        let min_dwell = Duration::from_millis((word_count * 150).max(1000));
                                         let current_score = containment(&accumulated, &lines[current].text);
                                         let next_score = if current + 1 < lines.len() {
                                             containment(&accumulated, &lines[current + 1].text)
@@ -431,33 +483,34 @@ async fn main() {
                                             0.0
                                         };
 
-                                        raw_println!("  buf: \"{}...\"", &accumulated[..accumulated.len().min(80)]);
-                                        raw_println!("  idx {} score: {:.3} | idx+1 score: {:.3} (prev: {:.3}) | idx+2 score: {:.3} (prev: {:.3}, baseline: {})",
-                                            current, current_score, next_score, prev_next_score, skip_score, prev_skip_score, have_baseline);
+                                        // raw_println!("  buf: \"{}...\"", &accumulated[..accumulated.len().min(80)]);
+                                        // raw_println!("  idx {} score: {:.3} | idx+1 score: {:.3} (prev: {:.3}) | idx+2 score: {:.3} (prev: {:.3}, baseline: {})",
+                                        //     current, current_score, next_score, prev_next_score, skip_score, prev_skip_score, have_baseline);
 
-                                        if last_advance.elapsed() >= min_dwell {
+                                        let auto_on = *auto_rx_conn.borrow();
+                                        if auto_on && last_advance.elapsed() >= min_dwell {
                                             if !have_baseline {
                                                 // First measurement after advance — record baseline, don't act
                                                 prev_next_score = next_score;
                                                 prev_skip_score = skip_score;
                                                 have_baseline = true;
-                                                raw_println!("  (baseline set: next {:.3}, skip {:.3})", next_score, skip_score);
-                                            } else if next_score > prev_next_score && next_score > 0.1 {
+                                                // raw_println!("  (baseline set: next {:.3}, skip {:.3})", next_score, skip_score);
+                                            } else if next_score > prev_next_score && next_score > 0.15 {
                                                 // Score is rising above baseline — advance
                                                 let next_idx = current + 1;
-                                                raw_println!("  >> Next score rising ({:.3} -> {:.3}), advancing to idx {}: {}",
-                                                    prev_next_score, next_score, next_idx, lines[next_idx].text);
+                                                // raw_println!("  >> Next score rising ({:.3} -> {:.3}), advancing to idx {}: {}",
+                                                //     prev_next_score, next_score, next_idx, lines[next_idx].text);
                                                 last_advance = Instant::now();
                                                 prev_next_score = 0.0;
                                                 prev_skip_score = 0.0;
                                                 have_baseline = false; // Need new baseline after advance
                                                 last_known_idx = next_idx;
                                                 let _ = idx_tx.send(next_idx);
-                                            } else if skip_score > prev_skip_score && skip_score > next_score + 0.1 && skip_score > 0.2 {
+                                            } else if skip_score > prev_skip_score && skip_score > next_score + 0.2 && skip_score > 0.3 {
                                                 // idx+2 is rising and beats both current and next — line was skipped
                                                 let skip_idx = current + 2;
-                                                raw_println!("  >> Skip detected ({:.3} -> {:.3}), jumping to idx {}: {}",
-                                                    prev_skip_score, skip_score, skip_idx, lines[skip_idx].text);
+                                                // raw_println!("  >> Skip detected ({:.3} -> {:.3}), jumping to idx {}: {}",
+                                                //     prev_skip_score, skip_score, skip_idx, lines[skip_idx].text);
                                                 last_advance = Instant::now();
                                                 prev_next_score = 0.0;
                                                 prev_skip_score = 0.0;
@@ -473,6 +526,7 @@ async fn main() {
                                             prev_next_score = next_score;
                                             prev_skip_score = skip_score;
                                         }
+                                        print_context_window(&lines, *idx_tx.borrow(), auto_on);
                                     }
                                     Err(e) => {
                                         eprint!("TCP JSON parse error: {}\r\n", e);
