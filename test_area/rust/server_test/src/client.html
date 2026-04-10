@@ -140,10 +140,6 @@ function showFallingText(text, style, reverse = false) {
   const h1 = document.createElement('h1');
   h1.className = 'ml13';
   h1.textContent = text;
-  // Default position: lower for normal, much lower for reversed
-  let left = '50%';
-  let top = reverse ? '95%' : '80%';
-  let transform = reverse ? 'translate(-50%, 0)' : 'translate(-50%, -50%)';
   // Apply style overrides if present
   if (style) {
     if (style.color) h1.style.color = style.color;
@@ -152,15 +148,17 @@ function showFallingText(text, style, reverse = false) {
     if (style.font_weight) h1.style.fontWeight = style.font_weight;
     if (style.font_style) h1.style.fontStyle = style.font_style;
     if (style.position) {
-      left = style.position.x || left;
-      top = style.position.y || top;
-      // If user provides y, still use correct transform for reverse
-      transform = reverse ? 'translate(-50%, 0)' : 'translate(-50%, -50%)';
+      h1.style.left = style.position.x || '50%';
+      h1.style.top = style.position.y || '50%';
+      h1.style.transform = 'translateX(-50%)';
     }
   }
-  h1.style.left = left;
-  h1.style.top = top;
-  h1.style.transform = transform;
+  // For reverse, override position to bottom of screen
+  if (reverse) {
+    h1.style.left = '50%';
+    h1.style.top = '85%';
+    h1.style.transform = 'translate(-50%, 0)';
+  }
   container.appendChild(h1);
   // Wrap every letter in a span
   h1.innerHTML = h1.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
@@ -183,11 +181,7 @@ function showStepText(text, style, reverse = false) {
   const h1 = document.createElement('h1');
   h1.className = 'ml-step';
   h1.textContent = text;
-  // Default position: lower for normal, much lower for reversed
-  let left = '50%';
-  let top = reverse ? '95%' : '80%';
-  let transform = reverse ? 'translate(-50%, 0)' : 'translate(-50%, -50%)';
-  // Apply style overrides (font only, not position yet)
+  // Apply style overrides if present
   if (style) {
     if (style.color) h1.style.color = style.color;
     if (style.font_size) h1.style.fontSize = style.font_size;
@@ -195,14 +189,17 @@ function showStepText(text, style, reverse = false) {
     if (style.font_weight) h1.style.fontWeight = style.font_weight;
     if (style.font_style) h1.style.fontStyle = style.font_style;
     if (style.position) {
-      left = style.position.x || left;
-      top = style.position.y || top;
-      transform = reverse ? 'translate(-50%, 0)' : 'translate(-50%, -50%)';
+      h1.style.left = style.position.x || '50%';
+      h1.style.top = style.position.y || '50%';
+      h1.style.transform = 'translateX(-50%)';
     }
   }
-  h1.style.left = left;
-  h1.style.top = top;
-  h1.style.transform = transform;
+  // For reverse, override position to bottom of screen
+  if (reverse) {
+    h1.style.left = '50%';
+    h1.style.top = '85%';
+    h1.style.transform = 'translate(-50%, 0)';
+  }
   container.appendChild(h1);
   // Wrap every letter in a span
   h1.innerHTML = h1.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
