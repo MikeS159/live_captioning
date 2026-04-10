@@ -80,7 +80,145 @@
     opacity: 1 !important;
     transition: opacity 0.5s ease;
   }
+
+  /* Falling text effect styles */
+  .ml13 {
+    font-size: 4vw;
+    letter-spacing: normal;
+    font-weight: 400;
+    color: white;
+    text-align: center;
+    width: 100vw;
+    left: 50%;
+    top: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    padding: 0;
+    z-index: 10;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .ml13 .letter,
+  .ml-step .letter {
+    display: inline-block;
+    line-height: 1em;
+  }
+
+  /* Center and style step effect like falling */
+  .ml-step {
+    font-size: 4vw;
+    letter-spacing: normal;
+    font-weight: 400;
+    color: white;
+    text-align: center;
+    width: 100vw;
+    left: 50%;
+    top: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    padding: 0;
+    z-index: 10;
+    pointer-events: none;
+    overflow: visible;
+  }
 </style>
+</head>
+<body>
+  <div id="container"></div>
+
+<!-- Anime.js for text effects -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/2.0.2/anime.min.js"></script>
+
+<script>
+// Helper to apply falling text effect
+function showFallingText(text, style, reverse = false) {
+  // Remove any existing ml13
+  document.querySelectorAll('.ml13').forEach(e => e.remove());
+  const container = document.getElementById('container');
+  const h1 = document.createElement('h1');
+  h1.className = 'ml13';
+  h1.textContent = text;
+  // Default position: lower for normal, much lower for reversed
+  let left = '50%';
+  let top = reverse ? '95%' : '80%';
+  let transform = reverse ? 'translate(-50%, 0)' : 'translate(-50%, -50%)';
+  // Apply style overrides if present
+  if (style) {
+    if (style.color) h1.style.color = style.color;
+    if (style.font_size) h1.style.fontSize = style.font_size;
+    if (style.font_family) h1.style.fontFamily = style.font_family;
+    if (style.font_weight) h1.style.fontWeight = style.font_weight;
+    if (style.font_style) h1.style.fontStyle = style.font_style;
+    if (style.position) {
+      left = style.position.x || left;
+      top = style.position.y || top;
+      // If user provides y, still use correct transform for reverse
+      transform = reverse ? 'translate(-50%, 0)' : 'translate(-50%, -50%)';
+    }
+  }
+  h1.style.left = left;
+  h1.style.top = top;
+  h1.style.transform = transform;
+  container.appendChild(h1);
+  // Wrap every letter in a span
+  h1.innerHTML = h1.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
+  anime.timeline({loop: false}).add({
+      targets: '.ml13 .letter',
+      translateY: reverse ? [0, -400] : [0, 400], // FALL up or down
+      opacity: [1,0],
+      easing: "easeInExpo",
+      duration: 1200,
+      delay: (el, i) => 100 + 30 * i
+    });
+  // Remove after animation (total duration)
+  setTimeout(() => h1.remove(), 3000 + text.length * 30);
+}
+
+// Helper to apply step effect - letters step one after another (like falling but upward)
+function showStepText(text, style, reverse = false) {
+  document.querySelectorAll('.ml-step').forEach(e => e.remove());
+  const container = document.getElementById('container');
+  const h1 = document.createElement('h1');
+  h1.className = 'ml-step';
+  h1.textContent = text;
+  // Default position: lower for normal, much lower for reversed
+  let left = '50%';
+  let top = reverse ? '95%' : '80%';
+  let transform = reverse ? 'translate(-50%, 0)' : 'translate(-50%, -50%)';
+  // Apply style overrides (font only, not position yet)
+  if (style) {
+    if (style.color) h1.style.color = style.color;
+    if (style.font_size) h1.style.fontSize = style.font_size;
+    if (style.font_family) h1.style.fontFamily = style.font_family;
+    if (style.font_weight) h1.style.fontWeight = style.font_weight;
+    if (style.font_style) h1.style.fontStyle = style.font_style;
+    if (style.position) {
+      left = style.position.x || left;
+      top = style.position.y || top;
+      transform = reverse ? 'translate(-50%, 0)' : 'translate(-50%, -50%)';
+    }
+  }
+  h1.style.left = left;
+  h1.style.top = top;
+  h1.style.transform = transform;
+  container.appendChild(h1);
+  // Wrap every letter in a span
+  h1.innerHTML = h1.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
+  // step each letter up or down and back in sequence
+  anime.timeline({ loop: false })
+    .add({
+      targets: '.ml-step .letter',
+      translateY: (el, i) => reverse ? [0, -80 - (i * 20)] : [0, 80 + (i * 20)],
+      easing: 'easeInOutSine',
+      duration: 600,
+      delay: (el, i) => i * 80
+    });
+  // Remove after animation completes
+  setTimeout(() => h1.remove(), 1500 + text.length * 80);
+}
+</script>
 </head>
 <body>
   <div id="container"></div>
@@ -118,6 +256,28 @@ function connectWS() {
   ws.onmessage = ev => {
     const msg = JSON.parse(ev.data);
     console.log('incoming msg', msg);
+
+
+    // --- Animate effect handling: always check first ---
+if (msg && typeof msg.animate === 'string') {
+  document.querySelectorAll('.ml13, .ml-step, .line').forEach(e => e.remove());
+  if (msg.animate === 'fall') {
+    showFallingText(msg.text, msg.style || {});
+    return;
+  }
+  if (msg.animate === 'fall-up') {
+    showFallingText(msg.text, msg.style || {}, true);
+    return;
+  }
+  if (msg.animate === 'step') {
+    showStepText(msg.text, msg.style || {});
+    return;
+  }
+  if (msg.animate === 'step-up') {
+    showStepText(msg.text, msg.style || {}, true);
+    return;
+  }
+}
 
     // Video clearing logic: if incoming video message has url 'none', remove all videos
     if (msg.media && msg.media.kind === 'video' && msg.media.url === 'none') {

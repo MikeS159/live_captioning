@@ -38,6 +38,10 @@
     { "text": "For the good acting Sibyl's text looks 'fancy'", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "100px", "font_family": "Tangerine", "font_style": "bold", "font_weight": "700", "position": { "x": "50%", "y": "2%" } } },
     { "text": "But for the bad acting it looks 'boring' Default", "speaker": "Sibyl" },
     { "text": "But for the bad acting it looks 'boring' JB Mono", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "85px", "font_family": "JetBrains Mono", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "2%" } } },
-    { "text": "But for the bad acting it looks 'boring' Courier New", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "85px", "font_family": "Courier New", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "2%" } } }
-
+    { "text": "But for the bad acting it looks 'boring' Courier New", "speaker": "Sibyl", "style": { "color": "#6B4FA3", "font_size": "85px", "font_family": "Courier New", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "2%" } } },
+    { "text": "Watch this word step down!", "speaker": "All", "animate": "step" },
+    { "text": "Watch this word step up!", "speaker": "All", "animate": "step-up" },
+    { "text": "Watch this word fall!", "speaker": "All", "animate": "fall" },
+    { "text": "Watch this word fall!", "speaker": "All", "animate": "fall-up" },
+    { "text": "Watch this word is normal!", "speaker": "All" }
 ]
