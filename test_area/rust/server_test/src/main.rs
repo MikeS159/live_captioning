@@ -143,11 +143,13 @@ fn containment(buffer: &str, line: &str) -> f64 {
 }
 
 fn truncate_line(text: &str, max_len: usize) -> String {
-    if text.len() <= max_len {
+    if text.chars().count() <= max_len {
         text.to_string()
     } else {
         let half = (max_len - 3) / 2;
-        format!("{}...{}", &text[..half], &text[text.len() - half..])
+        let start: String = text.chars().take(half).collect();
+        let end: String = text.chars().rev().take(half).collect::<Vec<_>>().into_iter().rev().collect();
+        format!("{}...{}", start, end)
     }
 }
 
@@ -260,16 +262,16 @@ async fn main() {
     let speaker_styles = load_speaker_styles("src/speaker_styles.json");
     // broadcast channel for pushing LineMessage to all connected clients.
     let (tx, _rx) = broadcast::channel::<LineMessage>(16);
-    // let mut lines = Vec::new();
-    // for i in start..=stop {
-    //     let file = if i == 0 {
-    //         format!("src/00_prologue.json")
-    //     } else {
-    //         format!("src/{:02}_scene{}.json", i, i)
-    //     };
-    //     lines.extend(load_lines_from_file(&file));
-    // }
-    let mut lines = load_lines_from_file("src/colour_test.json");
+    let mut lines = Vec::new();
+    for i in start..=stop {
+        let file = if i == 0 {
+            format!("src/00_prologue.json")
+        } else {
+            format!("src/{:02}_scene{}.json", i, i)
+        };
+        lines.extend(load_lines_from_file(&file));
+    }
+    //let mut lines = load_lines_from_file("src/colour_test.json");
 
     // Apply default style if missing
     for line in &mut lines {
