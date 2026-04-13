@@ -123,6 +123,61 @@
     pointer-events: none;
     overflow: visible;
   }
+
+  /* Clock effect */
+  .ml-clock {
+    font-size: 4vw;
+    letter-spacing: normal;
+    font-weight: 400;
+    color: white;
+    text-align: center;
+    width: 100vw;
+    left: 50%;
+    top: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    padding: 0;
+    z-index: 10;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .ml-clock .word {
+    display: inline-block;
+    transform-origin: center center;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Smoke effect */
+  .ml-smoke {
+    font-size: 4vw;
+    letter-spacing: normal;
+    font-weight: 400;
+    color: white;
+    text-align: center;
+    width: 100vw;
+    left: 50%;
+    top: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    padding: 0;
+    z-index: 10;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .ml-smoke .word {
+    display: inline-block;
+    opacity: 0;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    filter: blur(0px);
+  }
 </style>
 </head>
 <body>
@@ -215,6 +270,130 @@ function showStepText(text, style, reverse = false) {
   // Remove after animation completes
   setTimeout(() => h1.remove(), 1500 + text.length * 80);
 }
+
+// Helper for clock hands effect - words rotate around center like clock hands
+function showClockText(text, style) {
+  document.querySelectorAll('.ml-clock').forEach(e => e.remove());
+  const container = document.getElementById('container');
+  const wrapper = document.createElement('h1');
+  wrapper.className = 'ml-clock';
+  if (style) {
+    if (style.color) wrapper.style.color = style.color;
+    if (style.font_size) wrapper.style.fontSize = style.font_size;
+    if (style.font_family) wrapper.style.fontFamily = style.font_family;
+    if (style.font_weight) wrapper.style.fontWeight = style.font_weight;
+    if (style.font_style) wrapper.style.fontStyle = style.font_style;
+    if (style.position) {
+      wrapper.style.left = style.position.x || '50%';
+      wrapper.style.top = style.position.y || '50%';
+      wrapper.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+  container.appendChild(wrapper);
+
+  const words = text.split(/\s+/);
+  words.forEach((w, i) => {
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = w;
+    span.style.opacity = '0';
+    wrapper.appendChild(span);
+  });
+
+  const wordEls = wrapper.querySelectorAll('.word');
+  const totalDuration = 4000;
+  const stagger = 200;
+
+  // Animate words swinging like clock hands — alternating left/right
+  wordEls.forEach((el, i) => {
+    const direction = i % 2 === 0 ? 1 : -1;
+    const startAngle = direction * 90; // start from 3 o'clock or 9 o'clock
+
+    anime.timeline({ loop: false })
+      .add({
+        targets: el,
+        opacity: [0, 1],
+        rotate: [startAngle, 0],
+        duration: 1,
+        easing: 'easeOutBack',
+        delay: i * stagger
+      })
+      .add({
+        targets: el,
+        rotate: {
+          value: [0, -direction * 360],
+          duration: totalDuration,
+          easing: 'linear'
+        },
+        delay: 200
+      })
+      .add({
+        targets: el,
+        opacity: [1, 0],
+        rotate: [0, direction * 90],
+        duration: 1,
+        easing: 'easeInBack'
+      });
+  });
+
+  setTimeout(() => wrapper.remove(), totalDuration + 3000);
+}
+
+// Helper for smoke dissolve effect - words grow and dissolve into smoke one after another
+function showSmokeText(text, style) {
+  document.querySelectorAll('.ml-smoke').forEach(e => e.remove());
+  const container = document.getElementById('container');
+  const wrapper = document.createElement('h1');
+  wrapper.className = 'ml-smoke';
+  if (style) {
+    if (style.color) wrapper.style.color = style.color;
+    if (style.font_size) wrapper.style.fontSize = style.font_size;
+    if (style.font_family) wrapper.style.fontFamily = style.font_family;
+    if (style.font_weight) wrapper.style.fontWeight = style.font_weight;
+    if (style.font_style) wrapper.style.fontStyle = style.font_style;
+    if (style.position) {
+      wrapper.style.left = style.position.x || '50%';
+      wrapper.style.top = style.position.y || '50%';
+      wrapper.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+  container.appendChild(wrapper);
+
+  const words = text.split(/\s+/);
+  words.forEach(w => {
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = w;
+    wrapper.appendChild(span);
+  });
+
+  const wordEls = wrapper.querySelectorAll('.word');
+  const perWord = 1800;
+
+  wordEls.forEach((el, i) => {
+    anime.timeline({ loop: false })
+      .add({
+        targets: el,
+        opacity: [0, 1],
+        scale: [0.3, 1],
+        duration: 500,
+        easing: 'easeOutQuad',
+        delay: i * perWord
+      })
+      .add({
+        targets: el,
+        scale: [1, 3],
+        opacity: [1, 0],
+        filter: ['blur(0px)', 'blur(20px)'],
+        translateY: [0, -60],
+        duration: 1200,
+        easing: 'easeInQuad',
+        delay: 200
+      });
+  });
+
+  setTimeout(() => wrapper.remove(), words.length * perWord + 2000);
+}
 </script>
 </head>
 <body>
@@ -257,7 +436,7 @@ function connectWS() {
 
     // --- Animate effect handling: always check first ---
 if (msg && typeof msg.animate === 'string') {
-  document.querySelectorAll('.ml13, .ml-step, .line').forEach(e => e.remove());
+  document.querySelectorAll('.ml13, .ml-step, .ml-clock, .ml-smoke, .line').forEach(e => e.remove());
   if (msg.animate === 'fall') {
     showFallingText(msg.text, msg.style || {});
     return;
@@ -272,6 +451,14 @@ if (msg && typeof msg.animate === 'string') {
   }
   if (msg.animate === 'step-up') {
     showStepText(msg.text, msg.style || {}, true);
+    return;
+  }
+  if (msg.animate === 'clock') {
+    showClockText(msg.text, msg.style || {});
+    return;
+  }
+  if (msg.animate === 'smoke') {
+    showSmokeText(msg.text, msg.style || {});
     return;
   }
 }
