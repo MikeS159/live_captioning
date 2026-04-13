@@ -30,5 +30,5 @@
     "Adrian": { "color": "#7B4513", "font_size": "85px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "2%" } },
     "Woman": { "color": "#7B4513", "font_size": "85px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "2%" } },
     "Sailor": { "color": "#7B4513", "font_size": "85px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "2%" } },
-    "Hetty": { "color": "#7B4513", "font_size": "85px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "2%" } }
+    "Hetty": { "color": "#6B4FA3", "font_size": "85px", "font_family": "Arial", "font_style": "normal", "font_weight": "400", "position": { "x": "50%", "y": "2%" } }
 }

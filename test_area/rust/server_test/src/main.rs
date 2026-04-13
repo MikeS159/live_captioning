@@ -156,13 +156,14 @@ fn truncate_line(text: &str, max_len: usize) -> String {
 fn print_context_window(lines: &[LineMessage], current: usize, auto_advance: bool) {
     let display_max = 100;
     let marker = if auto_advance { ">>>" } else { "xxx" };
+    let end_marker = if auto_advance { "<<<" } else { "xxx" };
     raw_println!("──────────────────────────────────────────────────────");
     let start = current.saturating_sub(10);
     let end = (current + 10).min(lines.len().saturating_sub(1));
     for i in start..=end {
         let truncated = truncate_line(&lines[i].text, display_max);
         if i == current {
-            raw_println!("{} {:>3}: {}\n", marker, i, truncated);
+            raw_println!("{} {:>3}: {}   {}\n", marker, i, truncated, end_marker);
         } else {
             raw_println!("    {:>3}: {}\n", i, truncated);
         }
