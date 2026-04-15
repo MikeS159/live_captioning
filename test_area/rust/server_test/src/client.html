@@ -188,7 +188,7 @@
   }
   .ml-blood .drip {
     position: absolute;
-    bottom: -0.1em;
+    top: 100%;
     left: 50%;
     width: 3px;
     height: 0;
@@ -199,7 +199,6 @@
 
   /* Handwriting effect */
   .ml-handwriting {
-    font-size: 4vw;
     font-weight: 400;
     color: white;
     text-align: center;
@@ -303,7 +302,7 @@ function showStepText(text, style, reverse = false) {
 }
 
 // Clock effect - words orbit in a circle
-function showClockText(text, style) {
+function showClockText(text, style, total_duration) {
   document.querySelectorAll('.ml-clock').forEach(e => e.remove());
   const container = document.getElementById('container');
   const wrapper = document.createElement('div');
@@ -348,17 +347,26 @@ function showClockText(text, style) {
     el.style.top = (centerY + radius * Math.sin(startAngle) - wordHeights[i] / 2) + 'px';
     el.style.opacity = '1';
 
+    const totalSteps = 16;
+    const stepAngle = (Math.PI * 4) / totalSteps;
+    let currentStep = 0;
+    const stepDuration = 10000 / totalSteps;
+    const stepInterval = setInterval(() => {
+      currentStep++;
+      const angle = startAngle + currentStep * stepAngle;
+      const x = centerX + radius * Math.cos(angle) - wordWidths[i] / 2;
+      const y = centerY + radius * Math.sin(angle) - wordHeights[i] / 2;
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      if (currentStep >= totalSteps) clearInterval(stepInterval);
+    }, stepDuration);
+
     anime({
       targets: obj,
-      angle: startAngle + Math.PI * 4, // 2 full rotations
-      duration: 4000,
-      easing: 'easeInOutSine',
-      update: function() {
-        const x = centerX + radius * Math.cos(obj.angle) - wordWidths[i] / 2;
-        const y = centerY + radius * Math.sin(obj.angle) - wordHeights[i] / 2;
-        el.style.left = x + 'px';
-        el.style.top = y + 'px';
-      },
+      angle: startAngle + Math.PI * 4,
+      duration: total_duration,
+      easing: 'linear',
+      update: function() {},
       complete: function() {
         // Fade out
         anime({
@@ -371,7 +379,7 @@ function showClockText(text, style) {
     });
   });
 
-  setTimeout(() => wrapper.remove(), 5000);
+  setTimeout(() => wrapper.remove(), total_duration + 2000);
 }
 
 // Smoke effect - words grow and dissolve into smoke
@@ -398,6 +406,7 @@ function showSmokeText(text, style) {
     if (style.position) {
       h1.style.left = style.position.x || '50%';
       h1.style.top = style.position.y || '50%';
+      h1.style.transform = 'translateX(-50%)';
     }
   }
 
@@ -445,6 +454,7 @@ function showBloodText(text, style) {
     if (style.position) {
       h1.style.left = style.position.x || '50%';
       h1.style.top = style.position.y || '50%';
+      h1.style.transform = 'translateX(-50%)';
     }
   }
 
@@ -459,13 +469,13 @@ function showBloodText(text, style) {
     targets: letters,
     opacity: [0, 1],
     translateY: [-20, 0],
-    duration: 600,
-    delay: (el, i) => i * 50,
+    duration: 60,
+    delay: (el, i) => i * 5,
     easing: 'easeOutQuad',
     complete: function() {
-      // Add drips to ~40% of letters randomly
+      // Add drips to ~70% of letters randomly
       letters.forEach((letter, i) => {
-        if (Math.random() < 0.4 || i === letters.length - 1) {
+        if (Math.random() < 0.7 || i === letters.length - 1) {
           const drip = document.createElement('div');
           drip.className = 'drip';
           // Match text color for drip
@@ -516,6 +526,7 @@ function showHandwritingText(text, style) {
     if (style.position) {
       h1.style.left = style.position.x || '50%';
       h1.style.top = style.position.y || '50%';
+      h1.style.transform = 'translateX(-50%)';
     }
   }
 
@@ -623,7 +634,18 @@ function connectWS() {
         return;
       }
       if (msg.animate === 'clock') {
-        showClockText(msg.text, msg.style || {});
+        showClockText(msg.text, msg.style || {}, 4000);
+        return;
+      }
+      if (msg.animate === 'clock-10s') {
+        showClockText(msg.text, msg.style || {}, 10000);
+        return;
+      }
+      //clock n seconds option
+      if (msg.animate.startsWith('clock-')) {
+        const parts = msg.animate.split('-');
+        const duration = parseInt(parts[1]) * 1000;
+        showClockText(msg.text, msg.style || {}, duration);
         return;
       }
       if (msg.animate === 'smoke') {
@@ -652,6 +674,8 @@ function connectWS() {
 
     // For non-video, fade out old content
     if (!(msg.media && msg.media.kind === 'video')) {
+      // Immediately remove any animated effect elements
+      document.querySelectorAll('.ml13, .ml-step, .ml-clock, .ml-smoke, .ml-blood, .ml-handwriting').forEach(e => e.remove());
       const oldChildren = Array.from(container.children);
       if (oldChildren.length > 0) {
         oldChildren.forEach(child => {

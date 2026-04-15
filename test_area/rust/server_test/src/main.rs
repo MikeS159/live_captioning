@@ -162,10 +162,26 @@ fn print_context_window(lines: &[LineMessage], current: usize, auto_advance: boo
     let end = (current + 10).min(lines.len().saturating_sub(1));
     for i in start..=end {
         let truncated = truncate_line(&lines[i].text, display_max);
+        let offset = i as isize - current as isize;
+        
+        // Determine jump key label for this offset
+        let jump_key = match offset {
+            -5 => "1>",
+            -4 => "2>",
+            -3 => "3>",
+            -2 => "4>",
+            2 => "5>",
+            3 => "6>",
+            4 => "7>",
+            5 => "8>",
+            6 => "9>",
+            _ => "  ",
+        };
+        
         if i == current {
             raw_println!("{} {:>3}: {}   {}\n", marker, i, truncated, end_marker);
         } else {
-            raw_println!("    {:>3}: {}\n", i, truncated);
+            raw_println!("{} {:>3}: {}\n", jump_key, i, truncated);
         }
     }
     raw_println!("──────────────────────────────────────────────────────");
@@ -379,8 +395,18 @@ async fn main() {
                     raw_println!("Quitting.");
                     std::process::exit(0);
                 } else if let Some(jump_amt) = trimmed.strip_prefix("reljump:") {
-                    if let Ok(jump) = jump_amt.parse::<usize>() {
-                        let new_idx = (idx + jump).min(max_idx);
+                    if let Ok(key) = jump_amt.parse::<usize>() {
+                        // Map keys to offsets: 1=-5, 2=-4, 3=-3, 4=-2, 5=+2, 6=+3, 7=+4, 8=+5, 9=+6
+                        let offset: isize = if key <= 4 {
+                            key as isize - 6
+                        } else {
+                            key as isize - 3
+                        };
+                        let new_idx = if offset < 0 {
+                            idx.saturating_sub(offset.unsigned_abs())
+                        } else {
+                            (idx + offset as usize).min(max_idx)
+                        };
                         let _ = idx_tx.send(new_idx);
                         print_context_window(&lines, new_idx, auto);
                     }
