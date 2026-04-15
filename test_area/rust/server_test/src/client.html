@@ -222,8 +222,8 @@ function showFallingText(text, style, reverse = false) {
       translateY: reverse ? [0, -400] : [0, 400], // FALL up or down
       opacity: [1,0],
       easing: "easeInExpo",
-      duration: 1200,
-      delay: (el, i) => 100 + 30 * i
+      duration: 2500,
+      delay: (el, i) => 90 * i
     });
   // Remove after animation (total duration)
   setTimeout(() => h1.remove(), 3000 + text.length * 30);

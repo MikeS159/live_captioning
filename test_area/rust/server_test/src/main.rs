@@ -312,18 +312,29 @@ async fn main() {
                 if event::poll(std::time::Duration::from_millis(100)).unwrap() {
                     if let Event::Key(key_event) = event::read().unwrap() {
                         if let KeyEventKind::Press = key_event.kind {
-                            let cmd = match key_event.code {
-                                KeyCode::Char('n') | KeyCode::Right => "n",
-                                KeyCode::Char('p') | KeyCode::Left => "p",
-                                KeyCode::Char('h') => "h",
-                                KeyCode::Char('g') => "g",
+                            match key_event.code {
+                                KeyCode::Char('n') | KeyCode::Right => {
+                                    let _ = cmd_tx.blocking_send("n".to_string());
+                                },
+                                KeyCode::Char('p') | KeyCode::Left => {
+                                    let _ = cmd_tx.blocking_send("p".to_string());
+                                },
+                                KeyCode::Char('h') => {
+                                    let _ = cmd_tx.blocking_send("h".to_string());
+                                },
+                                KeyCode::Char('g') => {
+                                    let _ = cmd_tx.blocking_send("g".to_string());
+                                },
+                                KeyCode::Char(c @ '1'..='9') => {
+                                    let jump = (c as u8 - b'0') as usize; // '1' -> 1, '2' -> 2, ...
+                                    let _ = cmd_tx.blocking_send(format!("reljump:{}", jump));
+                                },
                                 KeyCode::Char('q') => {
                                     disable_raw_mode().unwrap();
-                                    "q"
+                                    let _ = cmd_tx.blocking_send("q".to_string());
                                 },
                                 _ => continue,
-                            };
-                            let _ = cmd_tx.blocking_send(cmd.to_string());
+                            }
                         }
                     }
                 }
@@ -343,36 +354,36 @@ async fn main() {
             while let Some(line) = cmd_rx.recv().await {
                 let mut idx = *idx_tx.borrow();
                 let auto = *auto_rx_kb.borrow();
-                match line.trim() {
-                    "n" => {
-                        if idx < max_idx {
-                            idx += 1;
-                        }
-                        let _ = idx_tx.send(idx);
-                        print_context_window(&lines, idx, auto);
+                let trimmed = line.trim();
+                if trimmed == "n" {
+                    if idx < max_idx {
+                        idx += 1;
                     }
-                    "p" => {
-                        if idx > 0 {
-                            idx -= 1;
-                        }
-                        let _ = idx_tx.send(idx);
-                        print_context_window(&lines, idx, auto);
+                    let _ = idx_tx.send(idx);
+                    print_context_window(&lines, idx, auto);
+                } else if trimmed == "p" {
+                    if idx > 0 {
+                        idx -= 1;
                     }
-                    "h" => {
-                        let _ = auto_tx.send(false);
-                        raw_println!("Auto-advance DISABLED");
-                        print_context_window(&lines, idx, false);
+                    let _ = idx_tx.send(idx);
+                    print_context_window(&lines, idx, auto);
+                } else if trimmed == "h" {
+                    let _ = auto_tx.send(false);
+                    raw_println!("Auto-advance DISABLED");
+                    print_context_window(&lines, idx, false);
+                } else if trimmed == "g" {
+                    let _ = auto_tx.send(true);
+                    raw_println!("Auto-advance ENABLED");
+                    print_context_window(&lines, idx, true);
+                } else if trimmed == "q" {
+                    raw_println!("Quitting.");
+                    std::process::exit(0);
+                } else if let Some(jump_amt) = trimmed.strip_prefix("reljump:") {
+                    if let Ok(jump) = jump_amt.parse::<usize>() {
+                        let new_idx = (idx + jump).min(max_idx);
+                        let _ = idx_tx.send(new_idx);
+                        print_context_window(&lines, new_idx, auto);
                     }
-                    "g" => {
-                        let _ = auto_tx.send(true);
-                        raw_println!("Auto-advance ENABLED");
-                        print_context_window(&lines, idx, true);
-                    }
-                    "q" => {
-                        raw_println!("Quitting.");
-                        std::process::exit(0);
-                    }
-                    _ => {}
                 }
             }
         });
