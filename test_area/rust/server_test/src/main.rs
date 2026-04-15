@@ -262,17 +262,17 @@ async fn main() {
     };
     let speaker_styles = load_speaker_styles("src/speaker_styles.json");
     // broadcast channel for pushing LineMessage to all connected clients.
-    let (tx, _rx) = broadcast::channel::<LineMessage>(16);
-    let mut lines = Vec::new();
-    for i in start..=stop {
-        let file = if i == 0 {
-            format!("src/00_prologue.json")
-        } else {
-            format!("src/{:02}_scene{}.json", i, i)
-        };
-        lines.extend(load_lines_from_file(&file));
-    }
-    //let mut lines = load_lines_from_file("src/colour_test.json");
+     let (tx, _rx) = broadcast::channel::<LineMessage>(16);
+    // let mut lines = Vec::new();
+    // for i in start..=stop {
+        // let file = if i == 0 {
+            // format!("src/00_prologue.json")
+        // } else {
+            // format!("src/{:02}_scene{}.json", i, i)
+        // };
+        // lines.extend(load_lines_from_file(&file));
+    // }
+    let mut lines = load_lines_from_file("src/colour_test.json");
 
     // Apply default style if missing
     for line in &mut lines {

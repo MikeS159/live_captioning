@@ -53,5 +53,9 @@
     { "text": "Watch this word step up!", "speaker": "All", "animate": "step-up" },
     { "text": "Watch this word fall!", "speaker": "All", "animate": "fall" },
     { "text": "Watch this word fall!", "speaker": "All", "animate": "fall-up" },
+    { "text": "Tick Tock", "speaker": "All", "animate": "clock" },
+    { "text": "HATRED DISHONOR REVENGE NASTY", "speaker": "All", "animate": "smoke" },
+    { "text": "The Knife, the knifeY", "speaker": "All", "animate": "blood" },
+    { "text": "I am writing a letter", "speaker": "All", "animate": "handwriting" },
     { "text": "Watch this word is normal!", "speaker": "All" }
 ]

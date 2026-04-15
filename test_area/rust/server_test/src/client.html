@@ -17,34 +17,32 @@
     justify-content: center;
     align-items: center;
     box-sizing: border-box;
-    overflow: hidden; /* keep image inside */
+    overflow: hidden;
   }
 
   .frame img {
     display: block;
     width: 100%;
     height: 100%;
-    /* use cover to ensure image fills the frame fully; switch to 'contain' if you prefer letterboxed image */
     object-fit: cover;
   }
 
-/* Make .frame .text fill the viewport */
-.frame .text {
-  text-align: center;
-  pointer-events: none;
-  color: white;
-  word-break: break-word;
-  width: 100vw;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 4vw;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-  /* padded overlay area for text */
+  .frame .text {
+    text-align: center;
+    pointer-events: none;
+    color: white;
+    word-break: break-word;
+    width: 100vw;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 4vw;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
   .frame-text-area {
     position: absolute;
     width: 100%;
@@ -53,7 +51,6 @@
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    /* DEBUG: visible overlay border so you can see padding area — remove or change color when happy */
     outline: 2px dashed rgba(255,255,255,0.12);
   }
 
@@ -71,8 +68,8 @@
     padding: 0;
     box-sizing: border-box;
   }
+
   .frame {
-    /* ...existing frame styles... */
     opacity: 0;
     transition: opacity 0.5s ease;
   }
@@ -105,7 +102,6 @@
     line-height: 1em;
   }
 
-  /* Center and style step effect like falling */
   .ml-step {
     font-size: 4vw;
     letter-spacing: normal;
@@ -126,29 +122,21 @@
 
   /* Clock effect */
   .ml-clock {
-    font-size: 4vw;
-    letter-spacing: normal;
-    font-weight: 400;
-    color: white;
-    text-align: center;
-    width: 100vw;
-    left: 50%;
-    top: 50%;
     position: absolute;
-    transform: translate(-50%, -50%);
-    margin: 0;
-    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    left: 0;
+    top: 0;
     z-index: 10;
     pointer-events: none;
     overflow: visible;
   }
-  .ml-clock .word {
-    display: inline-block;
-    transform-origin: center center;
+  .ml-clock .clock-word {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    font-size: 4vw;
+    font-weight: 400;
+    color: white;
+    white-space: nowrap;
   }
 
   /* Smoke effect */
@@ -171,31 +159,82 @@
   }
   .ml-smoke .word {
     display: inline-block;
+    margin: 0 0.3em;
     opacity: 0;
-    position: absolute;
+  }
+
+  /* Blood drip effect */
+  .ml-blood {
+    font-size: 4vw;
+    letter-spacing: normal;
+    font-weight: 400;
+    color: #cc0000;
+    text-align: center;
+    width: 100vw;
     left: 50%;
     top: 50%;
-    transform: translate(-50%, -50%) scale(1);
-    filter: blur(0px);
+    position: absolute;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    padding: 0;
+    z-index: 10;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .ml-blood .letter {
+    display: inline-block;
+    line-height: 1em;
+    position: relative;
+  }
+  .ml-blood .drip {
+    position: absolute;
+    bottom: -0.1em;
+    left: 50%;
+    width: 3px;
+    height: 0;
+    background: linear-gradient(to bottom, #cc0000, #880000 60%, transparent);
+    border-radius: 0 0 2px 2px;
+    transform: translateX(-50%);
+  }
+
+  /* Handwriting effect */
+  .ml-handwriting {
+    font-size: 4vw;
+    font-weight: 400;
+    color: white;
+    text-align: center;
+    width: 100vw;
+    left: 50%;
+    top: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    padding: 0;
+    z-index: 10;
+    pointer-events: none;
+    overflow: visible;
+    font-family: 'Tangerine', cursive;
+    font-size: 6vw;
+  }
+  .ml-handwriting .letter {
+    display: inline-block;
+    opacity: 0;
   }
 </style>
 </head>
 <body>
   <div id="container"></div>
 
-<!-- Anime.js for text effects -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/2.0.2/anime.min.js"></script>
 
 <script>
 // Helper to apply falling text effect
 function showFallingText(text, style, reverse = false) {
-  // Remove any existing ml13
   document.querySelectorAll('.ml13').forEach(e => e.remove());
   const container = document.getElementById('container');
   const h1 = document.createElement('h1');
   h1.className = 'ml13';
   h1.textContent = text;
-  // Apply style overrides if present
   if (style) {
     if (style.color) h1.style.color = style.color;
     if (style.font_size) h1.style.fontSize = style.font_size;
@@ -208,35 +247,31 @@ function showFallingText(text, style, reverse = false) {
       h1.style.transform = 'translateX(-50%)';
     }
   }
-  // For reverse, override position to bottom of screen
   if (reverse) {
     h1.style.left = '50%';
     h1.style.top = '85%';
     h1.style.transform = 'translate(-50%, 0)';
   }
   container.appendChild(h1);
-  // Wrap every letter in a span
   h1.innerHTML = h1.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
   anime.timeline({loop: false}).add({
-      targets: '.ml13 .letter',
-      translateY: reverse ? [0, -400] : [0, 400], // FALL up or down
-      opacity: [1,0],
-      easing: "easeInExpo",
-      duration: 2500,
-      delay: (el, i) => 90 * i
-    });
-  // Remove after animation (total duration)
+    targets: '.ml13 .letter',
+    translateY: reverse ? [0, -400] : [0, 400],
+    opacity: [1,0],
+    easing: "easeInExpo",
+    duration: 1200,
+    delay: (el, i) => 100 + 30 * i
+  });
   setTimeout(() => h1.remove(), 3000 + text.length * 30);
 }
 
-// Helper to apply step effect - letters step one after another (like falling but upward)
+// Helper to apply step effect
 function showStepText(text, style, reverse = false) {
   document.querySelectorAll('.ml-step').forEach(e => e.remove());
   const container = document.getElementById('container');
   const h1 = document.createElement('h1');
   h1.className = 'ml-step';
   h1.textContent = text;
-  // Apply style overrides if present
   if (style) {
     if (style.color) h1.style.color = style.color;
     if (style.font_size) h1.style.fontSize = style.font_size;
@@ -249,16 +284,13 @@ function showStepText(text, style, reverse = false) {
       h1.style.transform = 'translateX(-50%)';
     }
   }
-  // For reverse, override position to bottom of screen
   if (reverse) {
     h1.style.left = '50%';
     h1.style.top = '85%';
     h1.style.transform = 'translate(-50%, 0)';
   }
   container.appendChild(h1);
-  // Wrap every letter in a span
   h1.innerHTML = h1.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
-  // step each letter up or down and back in sequence
   anime.timeline({ loop: false })
     .add({
       targets: '.ml-step .letter',
@@ -267,151 +299,289 @@ function showStepText(text, style, reverse = false) {
       duration: 600,
       delay: (el, i) => i * 80
     });
-  // Remove after animation completes
   setTimeout(() => h1.remove(), 1500 + text.length * 80);
 }
 
-// Helper for clock hands effect - words rotate around center like clock hands
+// Clock effect - words orbit in a circle
 function showClockText(text, style) {
   document.querySelectorAll('.ml-clock').forEach(e => e.remove());
   const container = document.getElementById('container');
-  const wrapper = document.createElement('h1');
+  const wrapper = document.createElement('div');
   wrapper.className = 'ml-clock';
-  if (style) {
-    if (style.color) wrapper.style.color = style.color;
-    if (style.font_size) wrapper.style.fontSize = style.font_size;
-    if (style.font_family) wrapper.style.fontFamily = style.font_family;
-    if (style.font_weight) wrapper.style.fontWeight = style.font_weight;
-    if (style.font_style) wrapper.style.fontStyle = style.font_style;
-    if (style.position) {
-      wrapper.style.left = style.position.x || '50%';
-      wrapper.style.top = style.position.y || '50%';
-      wrapper.style.transform = 'translate(-50%, -50%)';
-    }
-  }
-  container.appendChild(wrapper);
 
   const words = text.split(/\s+/);
-  words.forEach((w, i) => {
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+  const radius = Math.min(centerX, centerY) * 0.35;
+
+  const wordEls = words.map((word, i) => {
     const span = document.createElement('span');
-    span.className = 'word';
-    span.textContent = w;
-    span.style.opacity = '0';
+    span.className = 'clock-word';
+    span.textContent = word;
+    if (style) {
+      if (style.color) span.style.color = style.color;
+      if (style.font_size) span.style.fontSize = style.font_size;
+      if (style.font_family) span.style.fontFamily = style.font_family;
+      if (style.font_weight) span.style.fontWeight = style.font_weight;
+      if (style.font_style) span.style.fontStyle = style.font_style;
+    }
     wrapper.appendChild(span);
+    return span;
   });
 
-  const wordEls = wrapper.querySelectorAll('.word');
-  const totalDuration = 4000;
-  const stagger = 200;
+  container.appendChild(wrapper);
 
-  // Animate words swinging like clock hands — alternating left/right
+  // Measure word widths for centering
+  const wordWidths = wordEls.map(el => el.offsetWidth);
+  const wordHeights = wordEls.map(el => el.offsetHeight);
+
+  // Starting angles evenly spaced
+  const angleStep = (2 * Math.PI) / words.length;
+
+  // Animate each word in a circular orbit
   wordEls.forEach((el, i) => {
-    const direction = i % 2 === 0 ? 1 : -1;
-    const startAngle = direction * 90; // start from 3 o'clock or 9 o'clock
+    const startAngle = i * angleStep - Math.PI / 2; // start from top
+    const obj = { angle: startAngle };
 
-    anime.timeline({ loop: false })
-      .add({
-        targets: el,
-        opacity: [0, 1],
-        rotate: [startAngle, 0],
-        duration: 1,
-        easing: 'easeOutBack',
-        delay: i * stagger
-      })
-      .add({
-        targets: el,
-        rotate: {
-          value: [0, -direction * 360],
-          duration: totalDuration,
-          easing: 'linear'
-        },
-        delay: 200
-      })
-      .add({
-        targets: el,
-        opacity: [1, 0],
-        rotate: [0, direction * 90],
-        duration: 1,
-        easing: 'easeInBack'
-      });
+    // Position initially
+    el.style.left = (centerX + radius * Math.cos(startAngle) - wordWidths[i] / 2) + 'px';
+    el.style.top = (centerY + radius * Math.sin(startAngle) - wordHeights[i] / 2) + 'px';
+    el.style.opacity = '1';
+
+    anime({
+      targets: obj,
+      angle: startAngle + Math.PI * 4, // 2 full rotations
+      duration: 4000,
+      easing: 'easeInOutSine',
+      update: function() {
+        const x = centerX + radius * Math.cos(obj.angle) - wordWidths[i] / 2;
+        const y = centerY + radius * Math.sin(obj.angle) - wordHeights[i] / 2;
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+      },
+      complete: function() {
+        // Fade out
+        anime({
+          targets: el,
+          opacity: 0,
+          duration: 500,
+          easing: 'easeOutQuad'
+        });
+      }
+    });
   });
 
-  setTimeout(() => wrapper.remove(), totalDuration + 3000);
+  setTimeout(() => wrapper.remove(), 5000);
 }
 
-// Helper for smoke dissolve effect - words grow and dissolve into smoke one after another
+// Smoke effect - words grow and dissolve into smoke
 function showSmokeText(text, style) {
   document.querySelectorAll('.ml-smoke').forEach(e => e.remove());
   const container = document.getElementById('container');
-  const wrapper = document.createElement('h1');
-  wrapper.className = 'ml-smoke';
-  if (style) {
-    if (style.color) wrapper.style.color = style.color;
-    if (style.font_size) wrapper.style.fontSize = style.font_size;
-    if (style.font_family) wrapper.style.fontFamily = style.font_family;
-    if (style.font_weight) wrapper.style.fontWeight = style.font_weight;
-    if (style.font_style) wrapper.style.fontStyle = style.font_style;
-    if (style.position) {
-      wrapper.style.left = style.position.x || '50%';
-      wrapper.style.top = style.position.y || '50%';
-      wrapper.style.transform = 'translate(-50%, -50%)';
-    }
-  }
-  container.appendChild(wrapper);
+  const h1 = document.createElement('h1');
+  h1.className = 'ml-smoke';
 
   const words = text.split(/\s+/);
-  words.forEach(w => {
+  words.forEach(word => {
     const span = document.createElement('span');
     span.className = 'word';
-    span.textContent = w;
-    wrapper.appendChild(span);
+    span.textContent = word;
+    h1.appendChild(span);
   });
 
-  const wordEls = wrapper.querySelectorAll('.word');
-  const perWord = 1800;
+  if (style) {
+    if (style.color) h1.style.color = style.color;
+    if (style.font_size) h1.style.fontSize = style.font_size;
+    if (style.font_family) h1.style.fontFamily = style.font_family;
+    if (style.font_weight) h1.style.fontWeight = style.font_weight;
+    if (style.font_style) h1.style.fontStyle = style.font_style;
+    if (style.position) {
+      h1.style.left = style.position.x || '50%';
+      h1.style.top = style.position.y || '50%';
+    }
+  }
 
+  container.appendChild(h1);
+
+  const wordEls = h1.querySelectorAll('.word');
   wordEls.forEach((el, i) => {
     anime.timeline({ loop: false })
       .add({
         targets: el,
         opacity: [0, 1],
-        scale: [0.3, 1],
-        duration: 500,
-        easing: 'easeOutQuad',
-        delay: i * perWord
+        scale: [0.5, 1.2],
+        duration: 600,
+        delay: i * 800,
+        easing: 'easeOutQuad'
       })
       .add({
         targets: el,
-        scale: [1, 3],
-        opacity: [1, 0],
+        opacity: 0,
+        scale: 2.5,
+        translateY: -60,
         filter: ['blur(0px)', 'blur(20px)'],
-        translateY: [0, -60],
-        duration: 1200,
-        easing: 'easeInQuad',
-        delay: 200
+        duration: 800,
+        easing: 'easeInQuad'
       });
   });
 
-  setTimeout(() => wrapper.remove(), words.length * perWord + 2000);
+  setTimeout(() => h1.remove(), words.length * 800 + 2000);
 }
-</script>
-</head>
-<body>
-  <div id="container"></div>
 
-<script>
+// Blood drip effect - text appears then drips blood
+function showBloodText(text, style) {
+  document.querySelectorAll('.ml-blood').forEach(e => e.remove());
+  const container = document.getElementById('container');
+  const h1 = document.createElement('h1');
+  h1.className = 'ml-blood';
+  h1.textContent = text;
+
+  if (style) {
+    if (style.color) h1.style.color = style.color;
+    if (style.font_size) h1.style.fontSize = style.font_size;
+    if (style.font_family) h1.style.fontFamily = style.font_family;
+    if (style.font_weight) h1.style.fontWeight = style.font_weight;
+    if (style.font_style) h1.style.fontStyle = style.font_style;
+    if (style.position) {
+      h1.style.left = style.position.x || '50%';
+      h1.style.top = style.position.y || '50%';
+    }
+  }
+
+  container.appendChild(h1);
+
+  // Wrap each letter, adding a drip element to select letters
+  h1.innerHTML = h1.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
+  const letters = h1.querySelectorAll('.letter');
+
+  // Fade letters in with slight stagger
+  anime({
+    targets: letters,
+    opacity: [0, 1],
+    translateY: [-20, 0],
+    duration: 600,
+    delay: (el, i) => i * 50,
+    easing: 'easeOutQuad',
+    complete: function() {
+      // Add drips to ~40% of letters randomly
+      letters.forEach((letter, i) => {
+        if (Math.random() < 0.4 || i === letters.length - 1) {
+          const drip = document.createElement('div');
+          drip.className = 'drip';
+          // Match text color for drip
+          const color = h1.style.color || '#cc0000';
+          drip.style.background = `linear-gradient(to bottom, ${color}, ${color}88 60%, transparent)`;
+          letter.appendChild(drip);
+
+          // Animate the drip growing downward
+          const dripHeight = 20 + Math.random() * 80;
+          const dripDelay = 200 + Math.random() * 1500;
+          anime({
+            targets: drip,
+            height: [0, dripHeight],
+            duration: 1500 + Math.random() * 2000,
+            delay: dripDelay,
+            easing: 'easeInQuad'
+          });
+        }
+      });
+    }
+  });
+
+  setTimeout(() => {
+    anime({
+      targets: h1,
+      opacity: 0,
+      duration: 1000,
+      easing: 'easeInQuad',
+      complete: () => h1.remove()
+    });
+  }, 6000);
+}
+
+// Handwriting effect - letters appear as if being written
+function showHandwritingText(text, style) {
+  document.querySelectorAll('.ml-handwriting').forEach(e => e.remove());
+  const container = document.getElementById('container');
+  const h1 = document.createElement('h1');
+  h1.className = 'ml-handwriting';
+  h1.textContent = text;
+
+  if (style) {
+    if (style.color) h1.style.color = style.color;
+    if (style.font_size) h1.style.fontSize = style.font_size;
+    if (style.font_family) h1.style.fontFamily = style.font_family || "'Tangerine', cursive";
+    if (style.font_weight) h1.style.fontWeight = style.font_weight;
+    if (style.font_style) h1.style.fontStyle = style.font_style;
+    if (style.position) {
+      h1.style.left = style.position.x || '50%';
+      h1.style.top = style.position.y || '50%';
+    }
+  }
+
+  container.appendChild(h1);
+
+  // Wrap every character (including spaces) in spans
+  h1.innerHTML = h1.textContent.split('').map(ch => {
+    if (ch === ' ') return "<span class='letter' style='width:0.3em;'>&nbsp;</span>";
+    return "<span class='letter'>" + ch + "</span>";
+  }).join('');
+
+  const letters = h1.querySelectorAll('.letter');
+
+  // Each letter fades in with a slight downward stroke feel
+  anime({
+    targets: letters,
+    opacity: [0, 1],
+    translateY: [10, 0],
+    translateX: [-5, 0],
+    rotateZ: [-8, 0],
+    duration: 400,
+    delay: (el, i) => i * 120,
+    easing: 'easeOutQuad'
+  });
+
+  // Add a blinking cursor effect
+  const cursor = document.createElement('span');
+  cursor.textContent = '|';
+  cursor.style.opacity = '1';
+  cursor.style.fontWeight = '100';
+  cursor.style.animation = 'none';
+  cursor.style.marginLeft = '-2px';
+  h1.appendChild(cursor);
+
+  // Blink cursor
+  let cursorVisible = true;
+  const blinkInterval = setInterval(() => {
+    cursorVisible = !cursorVisible;
+    cursor.style.opacity = cursorVisible ? '1' : '0';
+  }, 500);
+
+  // After all letters written, keep cursor blinking briefly then remove
+  const totalTime = text.length * 120 + 400;
+  setTimeout(() => {
+    clearInterval(blinkInterval);
+    cursor.style.opacity = '0';
+  }, totalTime + 2000);
+
+  setTimeout(() => {
+    anime({
+      targets: h1,
+      opacity: 0,
+      duration: 1000,
+      easing: 'easeInQuad',
+      complete: () => h1.remove()
+    });
+  }, totalTime + 3000);
+}
+
 function normalizePadding(p) {
-  // Accept either:
-  // 1) string like "10px 20px"
-  // 2) object {top,right,bottom,left} with px values
-  // 3) object {top:10, left:10} (numbers)
   if (!p) return null;
   if (typeof p === 'string') return p;
   const t = p.top ?? p.t ?? '0px';
-  const r = p.right ?? p.r ?? p.right ?? '0px';
+  const r = p.right ?? p.r ?? '0px';
   const b = p.bottom ?? p.b ?? '0px';
   const l = p.left ?? p.l ?? '0px';
-  // ensure units if number provided
   function ensureUnit(v){
     if (v === undefined || v === null) return '0px';
     if (typeof v === 'number') return v + 'px';
@@ -426,44 +596,51 @@ function connectWS() {
   const container = document.getElementById('container');
   const ws = new WebSocket(`ws://${location.host}/ws`);
   ws.onopen = () => {
-    reconnectDelay = 100; // Reset delay on successful connection
+    reconnectDelay = 100;
     console.log('WebSocket connected');
   };
   ws.onmessage = ev => {
     const msg = JSON.parse(ev.data);
     console.log('incoming msg', msg);
 
+    // --- Animate effect handling ---
+    if (msg && typeof msg.animate === 'string') {
+      document.querySelectorAll('.ml13, .ml-step, .ml-clock, .ml-smoke, .ml-blood, .ml-handwriting, .line').forEach(e => e.remove());
+      if (msg.animate === 'fall') {
+        showFallingText(msg.text, msg.style || {});
+        return;
+      }
+      if (msg.animate === 'fall-up') {
+        showFallingText(msg.text, msg.style || {}, true);
+        return;
+      }
+      if (msg.animate === 'step') {
+        showStepText(msg.text, msg.style || {});
+        return;
+      }
+      if (msg.animate === 'step-up') {
+        showStepText(msg.text, msg.style || {}, true);
+        return;
+      }
+      if (msg.animate === 'clock') {
+        showClockText(msg.text, msg.style || {});
+        return;
+      }
+      if (msg.animate === 'smoke') {
+        showSmokeText(msg.text, msg.style || {});
+        return;
+      }
+      if (msg.animate === 'blood') {
+        showBloodText(msg.text, msg.style || {});
+        return;
+      }
+      if (msg.animate === 'handwriting') {
+        showHandwritingText(msg.text, msg.style || {});
+        return;
+      }
+    }
 
-    // --- Animate effect handling: always check first ---
-if (msg && typeof msg.animate === 'string') {
-  document.querySelectorAll('.ml13, .ml-step, .ml-clock, .ml-smoke, .line').forEach(e => e.remove());
-  if (msg.animate === 'fall') {
-    showFallingText(msg.text, msg.style || {});
-    return;
-  }
-  if (msg.animate === 'fall-up') {
-    showFallingText(msg.text, msg.style || {}, true);
-    return;
-  }
-  if (msg.animate === 'step') {
-    showStepText(msg.text, msg.style || {});
-    return;
-  }
-  if (msg.animate === 'step-up') {
-    showStepText(msg.text, msg.style || {}, true);
-    return;
-  }
-  if (msg.animate === 'clock') {
-    showClockText(msg.text, msg.style || {});
-    return;
-  }
-  if (msg.animate === 'smoke') {
-    showSmokeText(msg.text, msg.style || {});
-    return;
-  }
-}
-
-    // Video clearing logic: if incoming video message has url 'none', remove all videos
+    // Video clearing logic
     if (msg.media && msg.media.kind === 'video' && msg.media.url === 'none') {
       Array.from(container.children).forEach(child => {
         if (child.classList.contains('frame') && child.querySelector('video')) {
@@ -472,7 +649,8 @@ if (msg && typeof msg.animate === 'string') {
       });
       return;
     }
-    // For non-video, fade out old content, then clear after fade
+
+    // For non-video, fade out old content
     if (!(msg.media && msg.media.kind === 'video')) {
       const oldChildren = Array.from(container.children);
       if (oldChildren.length > 0) {
@@ -483,47 +661,31 @@ if (msg && typeof msg.animate === 'string') {
       }
     }
 
-    // If image, wrap in frame container
+    // Image
     if (msg.media && msg.media.kind === 'image') {
       const frame = document.createElement('div');
       frame.className = 'frame';
-
-      // position frame on screen
       frame.style.left = (msg.style?.position?.x) || '50%';
       frame.style.top  = (msg.style?.position?.y) || '0';
       frame.style.transform = 'translate(-50%, 0)';
-
-      // set outer frame size (img_size applies to the outer frame)
       if (msg.media.img_size) {
         frame.style.width  = msg.media.img_size.width;
         frame.style.height = msg.media.img_size.height;
       }
-
-      // create image and add to frame
       const img = document.createElement('img');
       img.src = msg.media.url;
       frame.appendChild(img);
       container.appendChild(frame);
-
-      // Fade in
       setTimeout(() => frame.classList.add('fade'), 10);
 
-      // Wait for image to load before placing text-area (so sizes are stable)
       img.onload = () => {
-        // Build padded text-area overlay (padding is applied to this overlay only)
         const textArea = document.createElement('div');
         textArea.className = 'frame-text-area';
-
-        // Normalize and apply padding from JSON (robust)
         const pad = normalizePadding(msg.media?.padding);
-        console.log('resolved padding:', pad);
         if (pad) textArea.style.padding = pad;
-
-        // Now create the actual text element inside the padded area
         const textDiv = document.createElement('div');
         textDiv.className = 'text';
         textDiv.innerHTML = msg.text;
-
         if (msg.style) {
           textDiv.style.color = msg.style.color;
           textDiv.style.fontSize = msg.style.font_size;
@@ -531,36 +693,23 @@ if (msg && typeof msg.animate === 'string') {
           textDiv.style.fontWeight = msg.style.font_weight || '400';
           textDiv.style.fontStyle = msg.style.font_style || 'normal';
         }
-          // allow multi-line wrapping inside the padded region
-          textDiv.style.whiteSpace = 'normal';
-
+        textDiv.style.whiteSpace = 'normal';
         textArea.appendChild(textDiv);
         frame.appendChild(textArea);
       };
-
-      // auto-remove after duration
-      // setTimeout(() => {
-      //   frame.remove();
-      // }, msg.media.duration_ms || 5000);
     }
-
-    // If video, wrap in frame container
+    // Video
     else if (msg.media && msg.media.kind === 'video') {
-      // Remove all images when video starts
       Array.from(container.children).forEach(child => {
         if (child.classList.contains('frame') && child.querySelector('img')) {
           child.remove();
         }
       });
-      // Check if a video with the same URL is already present
       let existing = Array.from(container.children).find(child => {
         return child.classList.contains('frame') && child.querySelector('video') && child.querySelector('video').src === msg.media.url;
       });
-      if (existing) {
-        // Already showing this video, do nothing
-        return;
-      }
-      // Create text element as a separate div
+      if (existing) return;
+
       const textDiv = document.createElement('div');
       textDiv.className = 'line';
       textDiv.innerHTML = msg.text;
@@ -580,7 +729,6 @@ if (msg && typeof msg.animate === 'string') {
       textDiv.style.zIndex = '2';
       container.appendChild(textDiv);
 
-      // Create video element as a separate frame
       const frame = document.createElement('div');
       frame.className = 'frame';
       frame.style.left = (msg.style?.position?.x) || '50%';
@@ -605,18 +753,16 @@ if (msg && typeof msg.animate === 'string') {
         frame.classList.add('fade');
         textDiv.classList.add('fade');
       }, 10);
-      // Remove video when it finishes, but keep text
       video.addEventListener('ended', () => {
         frame.classList.remove('fade');
         setTimeout(() => frame.remove(), 500);
       });
     }
     else {
-      // Text-only message
+      // Text-only
       const div = document.createElement('div');
       div.className = 'line';
       div.innerHTML = msg.text;
-
       if (msg.style) {
         div.style.color = msg.style.color;
         div.style.fontSize = msg.style.font_size;
@@ -626,26 +772,21 @@ if (msg && typeof msg.animate === 'string') {
         div.style.left = msg.style.position?.x || '50%';
         div.style.top  = msg.style.position?.y || '0';
         div.style.transform = 'translateX(-50%)';
-        // Note: Don't set position here - frame handles positioning
       }
-
       container.appendChild(div);
-      // Fade in
       setTimeout(() => div.classList.add('fade'), 10);
-
-      // Fade out after 500ms * number of words
       const wordCount = (msg.text || '').split(/\s+/).filter(Boolean).length;
-      const fadeDelay = Math.max(5000, wordCount * 500); // at least 5s
+      const fadeDelay = Math.max(5000, wordCount * 500);
       setTimeout(() => {
         div.classList.remove('fade');
-        setTimeout(() => div.remove(), 500); // match fade-out duration
+        setTimeout(() => div.remove(), 500);
       }, fadeDelay);
     }
-  }
+  };
   ws.onclose = () => {
     console.log('WebSocket closed, retrying in', reconnectDelay, 'ms');
     setTimeout(connectWS, reconnectDelay);
-    reconnectDelay = Math.min(reconnectDelay * 2, 5000); // Exponential backoff up to 5s
+    reconnectDelay = Math.min(reconnectDelay * 2, 5000);
   };
   ws.onerror = () => ws.close();
 }
