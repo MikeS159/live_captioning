@@ -447,7 +447,7 @@ function showBloodText(text, style) {
 
   if (style) {
     if (style.color) h1.style.color = style.color;
-    if (style.font_size) h1.style.fontSize = style.font_size;
+    if (style.font_size) h1.style.fontSize = style.font_size - 10;
     if (style.font_family) h1.style.fontFamily = style.font_family;
     if (style.font_weight) h1.style.fontWeight = style.font_weight;
     if (style.font_style) h1.style.fontStyle = style.font_style;
@@ -469,7 +469,7 @@ function showBloodText(text, style) {
     targets: letters,
     opacity: [0, 1],
     translateY: [-20, 0],
-    duration: 60,
+    duration: 1,
     delay: (el, i) => i * 5,
     easing: 'easeOutQuad',
     complete: function() {

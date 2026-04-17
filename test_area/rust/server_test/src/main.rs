@@ -170,6 +170,8 @@ fn print_context_window(lines: &[LineMessage], current: usize, auto_advance: boo
             -4 => "2>",
             -3 => "3>",
             -2 => "4>",
+            -1 => "p>",
+            1 => "n>",
             2 => "5>",
             3 => "6>",
             4 => "7>",
@@ -179,7 +181,7 @@ fn print_context_window(lines: &[LineMessage], current: usize, auto_advance: boo
         };
         
         if i == current {
-            raw_println!("{} {:>3}: {}   {}\n", marker, i, truncated, end_marker);
+            raw_println!("\n\n{} {:>3}: {}   {}\n\n\n", marker, i, truncated, end_marker);
         } else {
             raw_println!("{} {:>3}: {}\n", jump_key, i, truncated);
         }
@@ -278,17 +280,17 @@ async fn main() {
     };
     let speaker_styles = load_speaker_styles("src/speaker_styles.json");
     // broadcast channel for pushing LineMessage to all connected clients.
-     let (tx, _rx) = broadcast::channel::<LineMessage>(16);
-    // let mut lines = Vec::new();
-    // for i in start..=stop {
-        // let file = if i == 0 {
-            // format!("src/00_prologue.json")
-        // } else {
-            // format!("src/{:02}_scene{}.json", i, i)
-        // };
-        // lines.extend(load_lines_from_file(&file));
-    // }
-    let mut lines = load_lines_from_file("src/colour_test.json");
+    let (tx, _rx) = broadcast::channel::<LineMessage>(16);
+    let mut lines = Vec::new();
+    for i in start..=stop {
+        let file = if i == 0 {
+            format!("src/00_prologue.json")
+        } else {
+            format!("src/{:02}_scene{}.json", i, i)
+        };
+        lines.extend(load_lines_from_file(&file));
+    }
+    //let mut lines = load_lines_from_file("src/colour_test.json");
 
     // Apply default style if missing
     for line in &mut lines {
@@ -514,7 +516,7 @@ async fn main() {
                                         }
                                         // Dwell time scales with word count: ~100ms per word, minimum 1s
                                         let word_count = lines[current].text.split_whitespace().count() as u64;
-                                        let min_dwell = Duration::from_millis((word_count * 150).max(1000));
+                                        let min_dwell = Duration::from_millis((word_count * 200).max(1000));
                                         let current_score = containment(&accumulated, &lines[current].text);
                                         let next_score = if current + 1 < lines.len() {
                                             containment(&accumulated, &lines[current + 1].text)

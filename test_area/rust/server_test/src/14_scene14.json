@@ -19,7 +19,7 @@
   { "text": "Knelt beside him was a young girl so like his Sybil. Sir you are burning with the fever. You must not go out.", "speaker": "Hetty" },
   { "text": "She supported him back to his chamber.", "speaker": "Dorian" },
   { "text": "And for two weeks, nursed him back to strength.", "speaker": "Hetty" },
-  { "text": "Tick tock, tick tock, tick tock", "speaker": "Ensemble" },
+  { "text": "Tick Tock", "speaker": "Ensemble", "animate": "clock-14" },
   { "text": "Then he rode away.", "speaker": "Dorian" },
   { "text": "But he was to return to the village again and again.", "speaker": "All" },
   { "text": "Drawn to the girl who had everything he had lost.", "speaker": "Hetty" },
