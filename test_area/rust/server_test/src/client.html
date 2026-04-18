@@ -383,7 +383,7 @@ function showClockText(text, style, total_duration) {
 }
 
 // Smoke effect - words grow and dissolve into smoke
-function showSmokeText(text, style) {
+function showSmokeText(text, style, duration = 1600) { // duration per word in ms
   document.querySelectorAll('.ml-smoke').forEach(e => e.remove());
   const container = document.getElementById('container');
   const h1 = document.createElement('h1');
@@ -419,8 +419,8 @@ function showSmokeText(text, style) {
         targets: el,
         opacity: [0, 1],
         scale: [0.5, 1.2],
-        duration: 600,
-        delay: i * 800,
+        duration: duration / 2,
+        delay: i * duration,
         easing: 'easeOutQuad'
       })
       .add({
@@ -429,12 +429,12 @@ function showSmokeText(text, style) {
         scale: 2.5,
         translateY: -60,
         filter: ['blur(0px)', 'blur(20px)'],
-        duration: 800,
+        duration: duration / 2,
         easing: 'easeInQuad'
       });
   });
 
-  setTimeout(() => h1.remove(), words.length * 800 + 2000);
+  setTimeout(() => h1.remove(), words.length * duration + 2000);
 }
 
 // Blood drip effect - text appears then drips blood
@@ -447,7 +447,7 @@ function showBloodText(text, style) {
 
   if (style) {
     if (style.color) h1.style.color = style.color;
-    if (style.font_size) h1.style.fontSize = style.font_size - 10;
+    if (style.font_size) h1.style.fontSize = style.font_size;
     if (style.font_family) h1.style.fontFamily = style.font_family;
     if (style.font_weight) h1.style.fontWeight = style.font_weight;
     if (style.font_style) h1.style.fontStyle = style.font_style;
@@ -547,8 +547,8 @@ function showHandwritingText(text, style) {
     translateY: [10, 0],
     translateX: [-5, 0],
     rotateZ: [-8, 0],
-    duration: 400,
-    delay: (el, i) => i * 120,
+    duration: 300,
+    delay: (el, i) => i * 50,
     easing: 'easeOutQuad'
   });
 
@@ -649,7 +649,11 @@ function connectWS() {
         return;
       }
       if (msg.animate === 'smoke') {
-        showSmokeText(msg.text, msg.style || {});
+        showSmokeText(msg.text, msg.style || {}, 1000);
+        return;
+      }
+      if (msg.animate === 'smoke-long') {
+        showSmokeText(msg.text, msg.style || {}, 3000);
         return;
       }
       if (msg.animate === 'blood') {
